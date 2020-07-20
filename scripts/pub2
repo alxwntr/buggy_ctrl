@@ -1,0 +1,126 @@
+#!/usr/bin/env python3
+
+import threading
+from std_msgs.msg import String
+import rospy
+import pygame
+
+class PublishThread(threading.Thread):
+	def __init__(self, rate):
+		super(PublishThread, self).__init__()
+		self.publisher = rospy.Publisher('cmd', String, queue_size = 1)
+		self.command = 'r'
+		self.condition = threading.Condition()
+		self.done = False
+
+		# Set timeout to None if rate is 0 (causes new_message to wait forever)
+		# for new data to publish)
+		if rate != 0.0:
+			self.timeout = 1.0 / rate
+		else:
+			self.timeout = None
+
+		self.start()
+        
+        
+	def wait_for_subscribers(self):
+		i = 0
+		while not rospy.is_shutdown() and self.publisher.get_num_connections() == 0:
+			if i == 4:
+				print("Waiting for subscriber to connect to {}".format(self.publisher.name))
+			rospy.sleep(0.5)
+			i += 1
+			i = i % 5
+		if rospy.is_shutdown():
+			raise Exception("Got shutdown request before subscribers connected")
+
+
+	def update(self, st):
+		self.condition.acquire()
+		self.command = st
+		# Notify publish thread that we have a new message.
+		self.condition.notify()
+		self.condition.release()
+
+
+	def stop(self):
+		self.done = True
+		self.update('r')
+		self.join()
+
+
+	def run(self):
+		buggy_cmd = String()
+		while not self.done:
+			self.condition.acquire()
+			# Wait for a new message or timeout.
+			self.condition.wait(self.timeout)
+
+			# Copy state into String message.
+			buggy_cmd.data = self.command
+
+			self.condition.release()
+
+			# Publish.
+			self.publisher.publish(buggy_cmd)
+
+		# Publish stop message when thread exits.
+		buggy_cmd.data = 'r'
+		self.publisher.publish(buggy_cmd)
+
+        
+if __name__ == "__main__":
+	
+	pygame.init()
+	win = pygame.display.set_mode((100,100))
+	pygame.key.set_repeat(0)
+
+	rospy.init_node('pub')
+
+	rate = 0.0
+	timeout = None
+	r = rospy.Rate(10)
+	state = 'r'
+	commands = 'wsadqer '
+	
+	pub_thread = PublishThread(rate)
+
+	try:
+		pub_thread.wait_for_subscribers()
+		pub_thread.update(state)
+
+		print("Starting to publish to 'cmd'")
+		
+		running = True
+
+		while running:
+			
+			for event in pygame.event.get():
+				
+				if event.type == pygame.KEYDOWN:
+					
+					if event.key == pygame.K_SPACE:
+						state = ' '
+					
+					elif event.key != pygame.K_SPACE and event.key < 256 and chr(event.key) in commands:
+						state = chr(event.key)
+							
+					elif event.key == pygame.K_ESCAPE:
+						state = 'r'
+						print("Exiting program")
+						running = False
+										
+				if event.type == pygame.KEYUP:
+					if event.key < 256 and chr(event.key) in commands:
+						state = 'r'
+						
+			pygame.display.update()
+			pub_thread.update(state)
+			r.sleep()
+			
+		pygame.quit()
+
+	except KeyboardInterrupt:
+		pass
+	finally:
+		pub_thread.stop()
