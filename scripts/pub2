@@ -115,7 +115,7 @@ if __name__ == "__main__":
 						running = False
 										
 				if event.type == pygame.KEYUP:
-					if event.key < 256 and chr(event.key) in commands:
+					if event.key < 256 and chr(event.key) == state:
 						state = 'r'
 						
 			pygame.display.update()
