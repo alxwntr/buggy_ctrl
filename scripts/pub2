@@ -75,7 +75,7 @@ if __name__ == "__main__":
 	if "DISPLAY" not in os.environ:
 		raise RuntimeError("DISPLAY not set!")
 	
-	pygame.init()
+	pygame.display.init()
 	win = pygame.display.set_mode((100,100))
 	pygame.key.set_repeat(0)
 
