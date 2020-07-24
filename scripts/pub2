@@ -2,6 +2,7 @@
 
 import threading
 from std_msgs.msg import String
+import os
 import rospy
 import pygame
 
@@ -70,6 +71,9 @@ class PublishThread(threading.Thread):
 
         
 if __name__ == "__main__":
+
+	if "DISPLAY" not in os.environ:
+		raise RuntimeError("DISPLAY not set!")
 	
 	pygame.init()
 	win = pygame.display.set_mode((100,100))
@@ -124,3 +128,5 @@ if __name__ == "__main__":
 		pass
 	finally:
 		pub_thread.stop()
+
+# vi:set ts=4 noet:
