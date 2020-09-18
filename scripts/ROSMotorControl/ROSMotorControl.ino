@@ -1,199 +1,231 @@
 #define USE_USBCON 1
 #include <ros.h>
+#include <ros/time.h>
+#include <tf/tf.h>
+#include <tf/transform_broadcaster.h>
 #include <std_msgs/Int16.h>
+#include <geometry_msgs/Twist.h>
 
 //To start communication, use:
-//rosrun rosserial_python serial_node.py /dev/ttyACM0
-
-const int encPin1 = 0;
-const int encPin2 = 1;
-const int encPin3 = 3;
-const int encPin4 = 4;
-
-const int M1A = 9;
-const int M1B = 10;
-const int M2A = 11;
-const int M2B = 12;
-const int M3A = 7;
-const int M3B = SCL;
-const int M4A = A4;
-const int M4B = A5;
-
+//rosrun rosserial_python serial_node.py /dev/ttyACM0 _baud:=115200
+//PID variables:
 const float dT = 0.02; //seconds
 const float Kp = 1.0;
 const float Ki = 10.0;
 const float Kd = 0.01;
 
-volatile unsigned long timeNow1 = 0, lastTime1;
-volatile double tickTime1, spd1 = 0;
-volatile int count1 = 0;
+/* We could move this whole class into MotorController.h and #include it
+ * instead, but we would have to put the parameters above in that header
+ * too. */
+class MotorController {
 
-volatile unsigned long timeNow2 = 0, lastTime2;
-volatile double tickTime2, spd2 = 0;
-volatile int count2 = 0;
+    const int encPin_;
+    const int motorA_;
+    const int motorB_;
 
-volatile unsigned long timeNow3 = 0, lastTime3;
-volatile double tickTime3, spd3 = 0;
-volatile int count3 = 0;
+    volatile unsigned long lastTime_ = 0;
+    volatile double spd_ = 0;
+    volatile int count_ = 0;
 
-volatile unsigned long timeNow4 = 0, lastTime4;
-volatile double tickTime4, spd4 = 0;
-volatile int count4 = 0;
+    float lastError_ = 0.0, errorSum_ = 0.0;
 
-int scaledSpd1 = 0, scaledSpd2 = 0, scaledSpd3 = 0, scaledSpd4 = 0;
-int dmd = 0, dmdMax = 200, scaledDmd = 0, pwm1 = 0, pwm2 = 0, pwm3 = 0, pwm4 = 0;
+public:
+    
+    /* This is a constructor: a function called to build a new
+     * MotorController object. Constructor syntax is weird in C++: you
+     * must write a function with no return type, with the same name as
+     * the class. You can write more than one with different parameters
+     * and the compiler will choose the right one to call. */
+    MotorController (int encPin, int motorA, int motorB)
+        /* This constructs the member variables using the arguments
+         * passed to the constructor. The syntax is weird, again. You
+         * could just have encPin_ = encPin and so on in the function
+         * body, except that encPin_ is 'const' so you can't assign to
+         * it. So you have to do it like this. */
+        : encPin_(encPin), motorA_(motorA), motorB_(motorB)
+    /* This is the body of the constructor function. It has nothing in
+     * it, we have done all the work above in the initializer section.
+     * This is common in C++ constructors. */
+    { }
 
-float error1 = 0.0, lastError1 = 0.0, errorSum1 = 0.0;
-float error2 = 0.0, lastError2 = 0.0, errorSum2 = 0.0;
-float error3 = 0.0, lastError3 = 0.0, errorSum3 = 0.0;
-float error4 = 0.0, lastError4 = 0.0, errorSum4 = 0.0;
+    /* This function should be called from setup(), to setup the pins
+     * for this motor.
+     *
+     * This function has one parameter, isr, which has a function
+     * pointer type. It takes a pointer to the ISR to install on the
+     * encoder pin. This is the same type as the second parameter to
+     * attachInterrupt, as you would expect. See also below, in setup().
+     *
+     * You will notice that, unlike Python, there is no 'self' parameter
+     * to represent the object we are called on. In C++ the object is
+     * magically made available as a variable called 'this'. (Python's
+     * syntax is much cleaner.)
+     */
+    void setup_pins (void(*isr)(void))
+    {
+        pinMode(motorA_, OUTPUT);
+        //Set ground on one side of motor (for now)
+        digitalWrite(motorB_, LOW);
+        //Encoder pins
+        pinMode(encPin_, INPUT);
 
-//  -------------------------
+        attachInterrupt(digitalPinToInterrupt(encPin_), isr, RISING);
+    }
+
+    //PID loop:
+    void process_pid (int scaledDmd)
+    {
+        //Temporary variables:
+        int     pwm;
+        int     scaledSpd = map(spd_, 0, 170, 0, 255);
+        float   error;
+
+        //Calculate error and set PWM level:
+        error       = scaledDmd - scaledSpd;
+        errorSum_   += error*dT;
+        pwm         = Kp*error + Ki*errorSum_ + Kd*(error - lastError_)/dT;
+        lastError_  = error;
+
+        //Constrain PWM and ensure it gets to zero (immediately):
+        if (scaledDmd == 0) pwm = 0;
+        if (pwm < 0)        pwm = 0;
+        if (pwm > 255)      pwm = 255;
+        analogWrite(motorA_, pwm);
+
+        //Allow spd_to reach zero if no motion
+        if ((micros()-lastTime_) > 50000)
+            spd_=0;
+    }
+
+    //Called from ISR#
+    void handle_irq ()
+    {
+        unsigned long   timeNow;
+        float           tickTime;
+
+        //Do nothing for first 4 times:
+        count_++;
+        if (count_ < 5) return;
+        count_ = 0;
+
+        //Set time variables and calculate speed:
+        timeNow     = micros();
+        tickTime    = float(timeNow - lastTime_);
+        spd_        = 1000000/tickTime; // gives Hz for 5-tick blocks
+        lastTime_   = timeNow;
+    }
+/* Don't forget the semicolon here! */
+};
+
+const int num_motors = 4;
+
+/* This is an array of MotorController objects. The parameters are
+ * passed to the contstructor above. The curly-brace syntax is really
+ * weird, but those numbers are actually function arguments. */
+MotorController motors[num_motors] = {
+    { 0, 9, 10 },
+    { 1, 11, 12 },
+    { 3, 7, SCL },
+    { 4, A4, A5 },
+};
+
+int16_t dmd[num_motors] = {0,0,0,0};
+int dmdMax = 200;
+
+//-------------------------
 //  ROS stuff
-//  -------------------------
+//-------------------------
 
 ros::NodeHandle nh;
 
-std_msgs::Int16 demand;
-ros::Publisher p("demand_confirm", &demand);
+//Position variables:
+double x = 0.0;
+double y = 0.0;
+double theta = 1.571;
 
-void callback(const std_msgs::Int16& msg)
+char base_link[] = "/base_link";
+char odom[] = "/odom";
+
+geometry_msgs::Twist confirm;
+
+ros::Publisher p("demand_confirm", &confirm);
+
+void callback(const geometry_msgs::Twist& msg)
 {
-  dmd = msg.data;
-  demand.data = dmd;
-  p.publish( &demand );
+    confirm.linear.x = msg.linear.x;
+    confirm.angular.z = msg.angular.z;
+    p.publish( &confirm );
 }
 
-ros::Subscriber<std_msgs::Int16> s("demand_out", &callback);
+ros::Subscriber<geometry_msgs::Twist> s("demand_out", &callback);
+
+geometry_msgs::TransformStamped t;
+tf::TransformBroadcaster broadcaster;
+
+const float rate_div = 10; //Divider to allow publishing at slower rate
+int rate_cnt = 1;
+long tfLoopTime = 0;
+
+//-------------------------
+
+void ISR1() { motors[0].handle_irq(); }
+void ISR2() { motors[1].handle_irq(); }
+void ISR3() { motors[2].handle_irq(); }
+void ISR4() { motors[3].handle_irq(); }
 
 void setup()
 {
-  //Motor pins
-  pinMode(M1A, OUTPUT);
-  pinMode(M1B, OUTPUT);
-  pinMode(M2A, OUTPUT);
-  pinMode(M2B, OUTPUT);
-  pinMode(M3A, OUTPUT);
-  pinMode(M3B, OUTPUT);
-  pinMode(M4A, OUTPUT);
-  pinMode(M4B, OUTPUT);
-  //Set ground on one side of motor (for now)
-  digitalWrite(M1B, LOW);
-  digitalWrite(M2B, LOW);
-  digitalWrite(M3B, LOW);
-  digitalWrite(M4B, LOW);
-  //Encoder pins
-  pinMode(encPin1, INPUT);
-  pinMode(encPin2, INPUT);
-  pinMode(encPin3, INPUT);
-  pinMode(encPin4, INPUT);
-  //Interrupts
-  attachInterrupt(digitalPinToInterrupt(encPin1), ISR1, RISING);
-  attachInterrupt(digitalPinToInterrupt(encPin2), ISR2, RISING);
-  attachInterrupt(digitalPinToInterrupt(encPin3), ISR3, RISING);
-  attachInterrupt(digitalPinToInterrupt(encPin4), ISR4, RISING);
+    motors[0].setup_pins(ISR1);
+    motors[1].setup_pins(ISR2);
+    motors[2].setup_pins(ISR3);
+    motors[3].setup_pins(ISR4);
 
-  nh.initNode();
-  nh.advertise(p);
-  nh.subscribe(s);
+    nh.getHardware()->setBaud(115200);
+    nh.initNode();
+    nh.advertise(p);
+    nh.subscribe(s);
+    broadcaster.init(nh);
+}
+
+void publish_tf()
+{
+    // tf odom->base_link - why is this not in setup? It gets assigned every time.
+    t.header.frame_id = odom;
+    t.child_frame_id = base_link;
+    
+    t.transform.translation.x = x;
+    t.transform.translation.y = y;
+    
+    t.transform.rotation = tf::createQuaternionFromYaw(theta);
+    t.header.stamp = nh.now();
+    
+    broadcaster.sendTransform(t);
+
+    tfLoopTime = micros();
 }
 
 void loop()
 {
-  scaledDmd = map(dmd, 0, 1023, 0, dmdMax);
-  scaledSpd1 = map(spd1, 0, 170, 0, 255);
-  scaledSpd2 = map(spd2, 0, 170, 0, 255);
-  scaledSpd3 = map(spd3, 0, 170, 0, 255);
-  scaledSpd4 = map(spd4, 0, 170, 0, 255);
+    long pidLoopTime = micros();
+    int scaledDmd = 0;
 
-  //Motor 1
-  lastError1 = error1;
-  error1 = scaledDmd - scaledSpd1;
-  errorSum1 += error1*dT;
-  pwm1 = Kp*error1 + Ki*errorSum1 + Kd*(error1 - lastError1)/dT;
-  if (scaledDmd == 0) pwm1 = 0;
-  if (pwm1 < 0) pwm1 = 0;
-  if (pwm1 > 255) pwm1 = 255;
-  analogWrite(M1A, pwm1);
-  if ((micros()-timeNow1) > 50000) spd1=0;
+//    for (int i = 0; i < num_motors; i++) {
+//        map(dmd[i], 0, 1023, 0, dmdMax);
+//        motors[i].process_pid(scaledDmd);
+//    }
+    
+    // drive in a circle
+    double dx = 0.2;
+    double dtheta = 0.18;
+    x += cos(theta)*dx*0.1;
+    y += sin(theta)*dx*0.1;
+    theta += dtheta*0.1;
+    if(theta > 3.14)
+      theta=-3.14;
 
-  //Motor 2
-  lastError2 = error2;
-  error2 = scaledDmd - scaledSpd2;
-  errorSum2 += error2*dT;
-  pwm2 = Kp*error2 + Ki*errorSum2 + Kd*(error2 - lastError2)/dT;
-  if (scaledDmd == 0) pwm2 = 0;
-  if (pwm2 < 0) pwm2 = 0;
-  if (pwm2 > 255) pwm2 = 255;
-  analogWrite(M2A, pwm2);
-  if ((micros()-timeNow2) > 50000) spd2=0;
+    publish_tf();
 
-  //Motor 3
-  lastError3 = error3;
-  error3 = scaledDmd - scaledSpd3;
-  errorSum3 += error3*dT;
-  pwm3 = Kp*error3 + Ki*errorSum3 + Kd*(error3 - lastError3)/dT;
-  if (scaledDmd == 0) pwm3 = 0;
-  if (pwm3 < 0) pwm3 = 0;
-  if (pwm3 > 255) pwm3 = 255;
-  analogWrite(M3A, pwm3);
-  if ((micros()-timeNow3) > 50000) spd3=0;
+    nh.spinOnce();
 
-  //Motor 4
-  lastError4 = error4;
-  error4 = scaledDmd - scaledSpd4;
-  errorSum4 += error4*dT;
-  pwm4 = Kp*error4 + Ki*errorSum4 + Kd*(error4 - lastError4)/dT;
-  if (scaledDmd == 0) pwm4 = 0;
-  if (pwm4 < 0) pwm4 = 0;
-  if (pwm4 > 255) pwm4 = 255;
-  analogWrite(M4A, pwm4);
-  if ((micros()-timeNow4) > 50000) spd4=0;
-
-  nh.spinOnce();
-  delay(dT*1000); //miliseconds
-}
-
-void ISR1()
-{
-  count1++;
-  if (count1 < 5) return;
-  lastTime1 = timeNow1;
-  timeNow1 = micros();
-  tickTime1 = float(timeNow1 - lastTime1);
-  spd1 = 1000000/tickTime1; // gives Hz for 5-tick blocks
-  count1=0;
-}
-
-void ISR2()
-{
-  count2++;
-  if (count2 < 5) return;
-  lastTime2 = timeNow2;
-  timeNow2 = micros();
-  tickTime2 = float(timeNow2 - lastTime2);
-  spd2 = 1000000/tickTime2;
-  count2=0;
-}
-
-void ISR3()
-{
-  count3++;
-  if (count3 < 5) return;
-  lastTime3 = timeNow3;
-  timeNow3 = micros();
-  tickTime3 = float(timeNow3 - lastTime3);
-  spd3 = 1000000/tickTime3; // gives Hz for 5-tick blocks
-  count3=0;
-}
-
-void ISR4()
-{
-  count4++;
-  if (count4 < 5) return;
-  lastTime4 = timeNow4;
-  timeNow4 = micros();
-  tickTime4 = float(timeNow4 - lastTime4);
-  spd4 = 1000000/tickTime4;
-  count4=0;
+    delay(100);
 }
