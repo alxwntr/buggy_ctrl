@@ -1,13 +1,13 @@
-#define USE_USBCON 1
 #include <ros.h>
 #include <ros/time.h>
 #include <tf/tf.h>
 #include <tf/transform_broadcaster.h>
-#include <std_msgs/Int16.h>
+#include <std_msgs/Int32.h>
 #include <geometry_msgs/Twist.h>
 
 //To start communication, use:
 //rosrun rosserial_python serial_node.py /dev/ttyACM0 _baud:=115200
+//rosrun rosserial_python serial_node.py /dev/ttyAMA1  _baud:=115200 on pi serial pins)
 //PID variables:
 const float dT = 0.02; //seconds
 const float Kp = 1.0;
@@ -136,6 +136,8 @@ int dmdMax = 200;
 //  ROS stuff
 //-------------------------
 
+std_msgs::Int32 timeCheck;
+
 ros::NodeHandle nh;
 
 //Position variables:
@@ -149,12 +151,13 @@ char odom[] = "/odom";
 geometry_msgs::Twist confirm;
 
 ros::Publisher p("demand_confirm", &confirm);
+ros::Publisher p2("Time", &timeCheck);
 
 void callback(const geometry_msgs::Twist& msg)
 {
     confirm.linear.x = msg.linear.x;
     confirm.angular.z = msg.angular.z;
-    p.publish( &confirm );
+    p.publish( &confirm ); //publish this regulary in place of tf
 }
 
 ros::Subscriber<geometry_msgs::Twist> s("demand_out", &callback);
@@ -162,11 +165,11 @@ ros::Subscriber<geometry_msgs::Twist> s("demand_out", &callback);
 geometry_msgs::TransformStamped t;
 tf::TransformBroadcaster broadcaster;
 
-const float rate_div = 10; //Divider to allow publishing at slower rate
-int rate_cnt = 1;
-long tfLoopTime = 0;
-
 //-------------------------
+
+unsigned long loopTime = 0;
+unsigned long timeTemp = 0;
+unsigned long wait = 0;
 
 void ISR1() { motors[0].handle_irq(); }
 void ISR2() { motors[1].handle_irq(); }
@@ -183,6 +186,7 @@ void setup()
     nh.getHardware()->setBaud(115200);
     nh.initNode();
     nh.advertise(p);
+    nh.advertise(p2);
     nh.subscribe(s);
     broadcaster.init(nh);
 }
@@ -200,19 +204,18 @@ void publish_tf()
     t.header.stamp = nh.now();
     
     broadcaster.sendTransform(t);
-
-    tfLoopTime = micros();
 }
 
 void loop()
 {
-    long pidLoopTime = micros();
+    loopTime = micros();
+    
     int scaledDmd = 0;
 
-//    for (int i = 0; i < num_motors; i++) {
-//        map(dmd[i], 0, 1023, 0, dmdMax);
-//        motors[i].process_pid(scaledDmd);
-//    }
+    for (int i = 0; i < num_motors; i++) {
+        map(dmd[i], 0, 1023, 0, dmdMax);
+        motors[i].process_pid(scaledDmd);
+    }
     
     // drive in a circle
     double dx = 0.2;
@@ -220,12 +223,18 @@ void loop()
     x += cos(theta)*dx*0.1;
     y += sin(theta)*dx*0.1;
     theta += dtheta*0.1;
-    if(theta > 3.14)
-      theta=-3.14;
-
+    if(theta > 3.142)
+      theta=-3.142;
+    
     publish_tf();
 
     nh.spinOnce();
 
-    delay(100);
+    wait = micros() - loopTime;
+    wait = 100000 - wait;
+    delayMicroseconds(wait);
+
+    timeTemp = micros() - loopTime;
+    timeCheck.data = timeTemp;
+    p.publish( &timeCheck );
 }
