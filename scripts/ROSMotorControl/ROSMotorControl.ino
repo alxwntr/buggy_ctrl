@@ -3,113 +3,13 @@
 #include <tf/transform_broadcaster.h>
 #include <std_msgs/Float32.h>
 #include <geometry_msgs/Twist.h>
+#include "MotorPID.h"
 
 std_msgs::Float32 debug;
 
 //To start communication, use:
 //rosrun rosserial_python serial_node.py /dev/ttyACM0 _baud:=500000 (remember #define USE_USBCON 1)
 //rosrun rosserial_python serial_node.py /dev/ttyAMA1  _baud:=500000 on pi serial pins)
-
-//-------------------------
-//  PID variables
-//-------------------------
-
-const float dT = 0.02; //seconds
-const float Kp = 0.5;
-const float Ki = 10.0;
-const float Kd = 0.01;
-
-//-------------------------
-//  Car hardware variables
-//-------------------------
-
-class MotorController {
-
-    const int encPin_;
-    const int motorA_;
-    const int motorB_;
-
-    volatile unsigned long lastTime_ = 0;
-    volatile double spd_ = 0;
-    volatile int count_ = 0;
-
-    float lastError_ = 0.0, errorSum_ = 0.0;
-
-  public:
-
-    int dir = 0; // -1 = bkwrds, 0 = static, 1 = frwrds (need to think how to sort this out)
-    bool braking = false;
-
-    volatile float encCount = 0.0;
-    float floorSpeed = 0.0; //not needed?
-
-    MotorController (int encPin, int motorA, int motorB)
-      : encPin_(encPin), motorA_(motorA), motorB_(motorB)
-    { }
-
-    void setup_pins (void(*isr)(void))
-    {
-      pinMode(motorA_, OUTPUT);
-      //Set ground on one side of motor (for now)
-      digitalWrite(motorB_, LOW);
-      //Encoder pins
-      pinMode(encPin_, INPUT);
-
-      attachInterrupt(digitalPinToInterrupt(encPin_), isr, CHANGE);
-    }
-
-    //PID loop:
-    void process_pid (int scaledDmd)
-    {
-      //Brake (if travelling in wrong direction)
-      if (braking)
-      {
-        digitalWrite(motorA_, HIGH);
-        digitalWrite(motorB_, HIGH);
-        return;
-      }
-
-      //Temporary variables:
-      int     pwm;
-      int     scaledSpd = map(spd_, 0, 170, 0, 255);
-      float   error;
-
-      //Calculate error and set PWM level:
-      error       = scaledDmd - scaledSpd;
-      errorSum_   += error * dT;
-      pwm         = Kp * error + Ki * errorSum_ + Kd * (error - lastError_) / dT;
-      lastError_  = error;
-
-      //Constrain PWM and ensure it gets to zero (immediately):
-      if (scaledDmd == 0) pwm = 0;
-      if (pwm < 0)        pwm = 0;
-      if (pwm > 255)      pwm = 255;
-      analogWrite(motorA_, pwm);
-
-      //Allow spd_to reach zero if no motion
-      if ((micros() - lastTime_) > 50000)
-        spd_ = 0;
-    }
-
-    //Called from ISR#
-    void handle_irq ()
-    {
-      unsigned long   timeNow;
-      float           tickTime;
-
-      //Do nothing for first 4 times:
-      count_++;
-      encCount++;
-      if (count_ < 3) return;
-      count_ = 0;
-
-      //Set time variables and calculate speed:
-      timeNow     = micros();
-      tickTime    = float(timeNow - lastTime_);
-      spd_        = 1000000 / tickTime; // gives Hz for 0.5 encoder revs. RECONSIDER
-      lastTime_   = timeNow;
-    }
-};
 
 const int num_motors = 4;
 const float wheelbase = 0.12; // Dist between wheel centres. CHECK THIS
@@ -146,7 +46,7 @@ geometry_msgs::Twist confirm;
 //Position variables:
 double x = 0.0;
 double y = 0.0;
-double theta = 1.571;
+double theta = 0.0;
 
 //Publishers and subscriber:
 ros::Publisher p1("demand_confirm", &confirm);
@@ -215,7 +115,6 @@ void publish_tf()
 {
   t.transform.translation.x = x;
   t.transform.translation.y = y;
-
   t.transform.rotation = tf::createQuaternionFromYaw(theta);
   t.header.stamp = nh.now();
 
@@ -226,15 +125,16 @@ void set_levels()
 {
   if (confirm.linear.x > linDmdMax) confirm.linear.x = linDmdMax;
   if (confirm.linear.x < -linDmdMax) confirm.linear.x = -linDmdMax;
+  if (confirm.angular.z > angDmdMax) confirm.angular.z = angDmdMax;
+  if (confirm.angular.z < -angDmdMax) confirm.angular.z = -angDmdMax;
 
   //Warn message here to say demand out of range
   for (int i = 0; i < num_motors; i++)
   {
     dmd[i] = confirm.linear.x + (i % 2 ? 1 : -1) * confirm.angular.z;
   }
+  debug.data = dmd[2];
 }
-
-
 
 void calculate_moves()
 {
@@ -243,6 +143,7 @@ void calculate_moves()
   float angTotal = 0.0;
   float fwdDist = 0.0;
   float angDist = 0.0;
+  float dTheta = 0.0;
 
   for (int i = 0; i < num_motors; i++)
   {
@@ -254,9 +155,12 @@ void calculate_moves()
   fwdDist = runningTotal / num_motors;
   angDist = angTotal / 2; //Arc length traced by one side about the centre of car
 
-  x += fwdDist*cos(theta);
-  y += fwdDist*sin(theta);
-  theta += angDist / wheelbase;
+  //Set new position variables
+  //Assume straight line at angle of theta + dTheta/2, then set new theta
+  dTheta = angDist / wheelbase;
+  x += fwdDist*cos(theta + dTheta/2);
+  y += fwdDist*sin(theta + dTheta/2);
+  theta += dTheta;
 }
 
 void loop()
