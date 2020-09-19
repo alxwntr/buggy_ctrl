@@ -4,6 +4,7 @@
 #include <std_msgs/Float32.h>
 #include <geometry_msgs/Twist.h>
 #include "MotorPID.h"
+#include "DeadReckoning.h"
 
 std_msgs::Float32 debug;
 
@@ -44,9 +45,9 @@ ros::NodeHandle nh;
 geometry_msgs::Twist confirm;
 
 //Position variables:
-double x = 0.0;
-double y = 0.0;
-double theta = 0.0;
+float x = 0.0;
+float y = 0.0;
+float theta = 0.0;
 
 //Publishers and subscriber:
 ros::Publisher p1("demand_confirm", &confirm);
@@ -62,17 +63,12 @@ void callback(const geometry_msgs::Twist& msg)
 ros::Subscriber<geometry_msgs::Twist> s("demand_out", &callback);
 
 //  tf variables:
-geometry_msgs::TransformStamped t;
-tf::TransformBroadcaster broadcaster;
 const int tfRateDivisor = 5;
 int loopCount = 0;
 
 //-------------------------
 //  Loop handling variables
 //-------------------------
-
-char base_link[] = "/base_link";
-char odom[] = "/odom";
 
 unsigned long mainLoopTime = 0;
 unsigned long PIDLoopTime = 0;
@@ -105,28 +101,12 @@ void setup()
   nh.advertise(p2);
   nh.subscribe(s);
   broadcaster.init(nh);
-
-  // tf odom->base_link
-  t.header.frame_id = odom;
-  t.child_frame_id = base_link;
-}
-
-void publish_tf()
-{
-  t.transform.translation.x = x;
-  t.transform.translation.y = y;
-  t.transform.rotation = tf::createQuaternionFromYaw(theta);
-  t.header.stamp = nh.now();
-
-  broadcaster.sendTransform(t);
 }
 
 void set_levels()
 {
-  if (confirm.linear.x > linDmdMax) confirm.linear.x = linDmdMax;
-  if (confirm.linear.x < -linDmdMax) confirm.linear.x = -linDmdMax;
-  if (confirm.angular.z > angDmdMax) confirm.angular.z = angDmdMax;
-  if (confirm.angular.z < -angDmdMax) confirm.angular.z = -angDmdMax;
+  confirm.linear.x = constrain(confirm.linear.x, -linDmdMax, linDmdMax);
+  confirm.angular.z = constrain(confirm.angular.z, -angDmdMax, angDmdMax);
 
   //Warn message here to say demand out of range
   for (int i = 0; i < num_motors; i++)
@@ -180,7 +160,7 @@ void loop()
     calculate_moves();
     
     loopCount = 0;
-    publish_tf();
+    publish_tf(nh, x, y, theta);
     p2.publish( &debug );
   }
 

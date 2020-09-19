@@ -101,3 +101,5 @@ class MotorController {
       lastTime_   = timeNow;
     }
 };
+
+#endif
