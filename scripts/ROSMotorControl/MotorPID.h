@@ -1,18 +1,23 @@
 #ifndef MOTORPID_H
 #define MOTORPID_H
 
+#include <Arduino.h>
+
 //-------------------------
 //  PID variables
 //-------------------------
 
-const float dT = 0.02; //seconds
+const float dT = 0.02; //50Hz - can't go too high because of lack of encoder pulses
 const float Kp = 0.5;
 const float Ki = 10.0;
 const float Kd = 0.01;
 
 //-------------------------
-//  Car hardware variables
+//  Motor control variables
 //-------------------------
+
+int linDmdMax = 200;
+int angDmdMax = 100;
 
 class MotorController {
 
@@ -101,5 +106,17 @@ class MotorController {
       lastTime_   = timeNow;
     }
 };
+
+void set_levels(geometry_msgs::Twist &confirm, float dmd[], int num_motors)
+{
+  confirm.linear.x = constrain (confirm.linear.x, -linDmdMax, linDmdMax);
+  confirm.angular.z = constrain (confirm.angular.z, -angDmdMax, angDmdMax);
+
+  //Warn message here to say demand out of range
+  for (int i = 0; i < num_motors; i++)
+  {
+    dmd[i] = confirm.linear.x + (i % 2 ? 1 : -1) * confirm.angular.z;
+  }
+}
 
 #endif

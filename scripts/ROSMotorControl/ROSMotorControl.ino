@@ -12,29 +12,7 @@ std_msgs::Float32 debug;
 //rosrun rosserial_python serial_node.py /dev/ttyACM0 _baud:=500000 (remember #define USE_USBCON 1)
 //rosrun rosserial_python serial_node.py /dev/ttyAMA1  _baud:=500000 on pi serial pins)
 
-const int num_motors = 4;
-const float wheelbase = 0.12; // Dist between wheel centres. CHECK THIS
-const float wheelDia = 0.035;
-
-/* Motor array:
-    {Front left,
-     Front right,
-     Back left,
-     Back right}
-
-     Entries in the form [Enc, M1, M2]*/
-
-MotorController motors[num_motors] = {
-  { 0, 9, 10 },
-  { 1, 11, 12 },
-  { 3, 7, SCL },
-  { 4, A4, A5 },
-};
-
-float dmd[num_motors] = {0, 0, 0, 0};
-int linDmdMax = 200;
-int angDmdMax = 100;
-const int PIDFreq = 50; //Hz - can't go too high because of lack of encoder pulses
+float dmd[num_motors] = {0, 0, 0, 0}; //Not really sure where to put this...
 
 //-------------------------
 //  ROS stuff
@@ -63,6 +41,10 @@ void callback(const geometry_msgs::Twist& msg)
 ros::Subscriber<geometry_msgs::Twist> s("demand_out", &callback);
 
 //  tf variables:
+geometry_msgs::TransformStamped t;
+char base_link[] = "/base_link";
+char odom[] = "/odom";
+tf::TransformBroadcaster broadcaster;
 const int tfRateDivisor = 5;
 int loopCount = 0;
 
@@ -74,15 +56,6 @@ unsigned long mainLoopTime = 0;
 unsigned long PIDLoopTime = 0;
 unsigned long timeTemp = 0;
 unsigned long wait = 0;
-
-//-------------------------
-//  Interrupt functions
-//-------------------------
-
-void ISR1() { motors[0].handle_irq(); }
-void ISR2() { motors[1].handle_irq(); }
-void ISR3() { motors[2].handle_irq(); }
-void ISR4() { motors[3].handle_irq(); }
 
 //-------------------------
 //  Functions
@@ -103,44 +76,19 @@ void setup()
   broadcaster.init(nh);
 }
 
-void set_levels()
+void publish_tf()
 {
-  confirm.linear.x = constrain(confirm.linear.x, -linDmdMax, linDmdMax);
-  confirm.angular.z = constrain(confirm.angular.z, -angDmdMax, angDmdMax);
+  // tf odom->base_link
+  t.header.frame_id = odom;
+  t.child_frame_id = base_link;
+  
+  t.transform.translation.x = x;
+  t.transform.translation.y = y;
+  
+  t.transform.rotation = tf::createQuaternionFromYaw(theta);
+  t.header.stamp = nh.now();
 
-  //Warn message here to say demand out of range
-  for (int i = 0; i < num_motors; i++)
-  {
-    dmd[i] = confirm.linear.x + (i % 2 ? 1 : -1) * confirm.angular.z;
-  }
-  debug.data = dmd[2];
-}
-
-void calculate_moves()
-{
-  float wheelDist[num_motors] = {0, 0, 0, 0};
-  float runningTotal = 0.0;
-  float angTotal = 0.0;
-  float fwdDist = 0.0;
-  float angDist = 0.0;
-  float dTheta = 0.0;
-
-  for (int i = 0; i < num_motors; i++)
-  {
-    wheelDist[i] = PI * wheelDia * motors[i].encCount / 300; //NEEDS DIRECTION
-    runningTotal += wheelDist[i];
-    angTotal += (i % 2 ? -1 : 1) * wheelDist[i]; //Pos anti-clockwise, so add right, sub left
-    motors[i].encCount = 0;
-  }
-  fwdDist = runningTotal / num_motors;
-  angDist = angTotal / 2; //Arc length traced by one side about the centre of car
-
-  //Set new position variables
-  //Assume straight line at angle of theta + dTheta/2, then set new theta
-  dTheta = angDist / wheelbase;
-  x += fwdDist*cos(theta + dTheta/2);
-  y += fwdDist*sin(theta + dTheta/2);
-  theta += dTheta;
+  broadcaster.sendTransform(t);
 }
 
 void loop()
@@ -148,7 +96,7 @@ void loop()
   mainLoopTime = micros();
   loopCount += 1;
 
-  set_levels();
+  set_levels(confirm, dmd, num_motors);
 
   for (int i = 0; i < num_motors; i++)
   {
@@ -157,16 +105,16 @@ void loop()
 
   if (loopCount = tfRateDivisor)
   {
-    calculate_moves();
+    calculate_moves(x, y, theta);
     
     loopCount = 0;
-    publish_tf(nh, x, y, theta);
+    publish_tf();
     p2.publish( &debug );
   }
 
   nh.spinOnce();
 
   wait = micros() - mainLoopTime;
-  wait = 1000000 / PIDFreq - wait;
+  wait = 1000000 / (1/dT) - wait;
   delayMicroseconds(wait);
 }
