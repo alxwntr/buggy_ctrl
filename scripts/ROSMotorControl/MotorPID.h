@@ -31,13 +31,13 @@ class MotorController {
 
     float lastError_ = 0.0, errorSum_ = 0.0;
 
-  public:
+    int drivePin_, gndPin_;
 
+  public:
+  
     int dir = 0; // -1 = bkwrds, 0 = static, 1 = frwrds (need to think how to sort this out)
-    bool braking = false;
 
     volatile float encCount = 0.0;
-    float floorSpeed = 0.0; //not needed?
 
     MotorController (int encPin, int motorA, int motorB)
       : encPin_(encPin), motorA_(motorA), motorB_(motorB)
@@ -45,24 +45,56 @@ class MotorController {
 
     void setup_pins (void(*isr)(void))
     {
+      //Motor pins
       pinMode(motorA_, OUTPUT);
-      //Set ground on one side of motor (for now)
-      digitalWrite(motorB_, LOW);
-      //Encoder pins
+      pinMode(motorB_, OUTPUT);
+      //Encoder pin
       pinMode(encPin_, INPUT);
 
       attachInterrupt(digitalPinToInterrupt(encPin_), isr, CHANGE);
     }
 
     //PID loop:
-    void process_pid (int scaledDmd)
+    void process_pid (int demand)
     {
-      //Brake (if travelling in wrong direction)
-      if (braking)
+      //Allow spd_to reach zero if no motion
+      if ((micros() - lastTime_) > 50000)
       {
-        digitalWrite(motorA_, HIGH);
-        digitalWrite(motorB_, HIGH);
+        spd_ = 0;
+        dir = 0;
+      }
+
+      //Coast if demand is zero
+      if(demand == 0)
+      {
+        analogWrite(motorA_, 0);
+        analogWrite(motorB_, 0);
         return;
+      }
+      
+      //Brake if travelling in wrong direction
+      if (spd_ != 0 && dir*demand < 0)
+      {
+        analogWrite(motorA_, 255);
+        analogWrite(motorB_, 255);
+        return;
+      }
+
+      //Set drive and gnd pins
+      if (demand >= 0)
+      {
+        drivePin_ = motorA_;
+        gndPin_ = motorB_;
+        analogWrite(gndPin_, 0);
+        dir = 1;
+      }
+      if (demand < 0)
+      {
+        drivePin_ = motorB_;
+        gndPin_ = motorA_;
+        analogWrite(gndPin_, 0);
+        dir = -1;
+        demand = -demand;
       }
 
       //Temporary variables:
@@ -71,20 +103,16 @@ class MotorController {
       float   error;
 
       //Calculate error and set PWM level:
-      error       = scaledDmd - scaledSpd;
+      error       = demand - scaledSpd;
       errorSum_   += error * dT;
       pwm         = Kp * error + Ki * errorSum_ + Kd * (error - lastError_) / dT;
       lastError_  = error;
 
       //Constrain PWM and ensure it gets to zero (immediately):
-      if (scaledDmd == 0) pwm = 0;
+      if (demand == 0) pwm = 0;
       if (pwm < 0)        pwm = 0;
       if (pwm > 255)      pwm = 255;
-      analogWrite(motorA_, pwm);
-
-      //Allow spd_to reach zero if no motion
-      if ((micros() - lastTime_) > 50000)
-        spd_ = 0;
+      analogWrite(drivePin_, pwm);
     }
 
     //Called from ISR#
@@ -93,7 +121,7 @@ class MotorController {
       unsigned long   timeNow;
       float           tickTime;
 
-      //Do nothing for first 4 times:
+      //Do nothing for first 2 times:
       count_++;
       encCount++;
       if (count_ < 3) return;
@@ -107,12 +135,8 @@ class MotorController {
     }
 };
 
-void set_levels(geometry_msgs::Twist &confirm, float dmd[], int num_motors)
+void set_levels(geometry_msgs::Twist &confirm, int dmd[], int num_motors)
 {
-  confirm.linear.x = constrain (confirm.linear.x, -linDmdMax, linDmdMax);
-  confirm.angular.z = constrain (confirm.angular.z, -angDmdMax, angDmdMax);
-
-  //Warn message here to say demand out of range
   for (int i = 0; i < num_motors; i++)
   {
     dmd[i] = confirm.linear.x + (i % 2 ? 1 : -1) * confirm.angular.z;

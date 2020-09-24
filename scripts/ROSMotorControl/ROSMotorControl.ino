@@ -1,18 +1,18 @@
 #include <ros.h>
 #include <tf/tf.h>
 #include <tf/transform_broadcaster.h>
-#include <std_msgs/Float32.h>
+#include <std_msgs/Int32.h>
 #include <geometry_msgs/Twist.h>
 #include "MotorPID.h"
 #include "DeadReckoning.h"
 
-std_msgs::Float32 debug;
+
 
 //To start communication, use:
-//rosrun rosserial_python serial_node.py /dev/ttyACM0 _baud:=500000 (remember #define USE_USBCON 1)
-//rosrun rosserial_python serial_node.py /dev/ttyAMA1  _baud:=500000 on pi serial pins)
+//rosrun rosserial_python serial_node.py /dev/ttyACM0 _baud:=1000000 (remember #define USE_USBCON 1)
+//rosrun rosserial_python serial_node.py /dev/ttyAMA1  _baud:=1000000 on pi serial pins)
 
-float dmd[num_motors] = {0, 0, 0, 0}; //Not really sure where to put this...
+int dmd[num_motors] = {0, 0, 0, 0}; //Not really sure where to put this...
 
 //-------------------------
 //  ROS stuff
@@ -33,8 +33,8 @@ ros::Publisher p2("debug", &debug);
 
 void callback(const geometry_msgs::Twist& msg)
 {
-  confirm.linear.x = msg.linear.x;
-  confirm.angular.z = msg.angular.z;
+  confirm.linear.x = constrain (msg.linear.x, -linDmdMax, linDmdMax);
+  confirm.angular.z = constrain (msg.angular.z, -angDmdMax, angDmdMax);
   p1.publish( &confirm );
 }
 
@@ -68,7 +68,7 @@ void setup()
   motors[2].setup_pins(ISR3);
   motors[3].setup_pins(ISR4);
 
-  nh.getHardware()->setBaud(500000);
+  nh.getHardware()->setBaud(1000000);
   nh.initNode();
   nh.advertise(p1);
   nh.advertise(p2);

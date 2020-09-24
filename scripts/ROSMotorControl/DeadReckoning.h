@@ -3,6 +3,8 @@
 
 #include <Arduino.h>
 
+std_msgs::Int32 debug;
+
 const int num_motors = 4;
 const float wheelbase = 0.12; // Dist between wheel centres. CHECK THIS
 const float wheelDia = 0.035;
@@ -16,11 +18,11 @@ const float wheelDia = 0.035;
      Entries in the form [Enc, M1, M2]*/
 
 MotorController motors[num_motors] = {
-  { 0, 9, 10 },
-  { 1, 11, 12 },
-  { 3, 7, SCL },
-  { 4, A4, A5 },
-};
+  { A0, 12, 11 },
+  { A1, 10, 9 },
+  { A2, 2, 4 },
+  { A3, A4, A5 },
+}; //Pins verified as working motor by motor, need to test all four together
 
 //-------------------------
 //  Interrupt functions
@@ -43,6 +45,7 @@ void calculate_moves(float &x, float &y, float &theta)
   float fwdDist = 0.0;
   float angDist = 0.0;
   float dTheta = 0.0;
+  debug.data = motors[3].encCount;
 
   for (int i = 0; i < num_motors; i++)
   {
