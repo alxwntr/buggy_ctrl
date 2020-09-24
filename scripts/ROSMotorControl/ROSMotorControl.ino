@@ -6,7 +6,7 @@
 #include "MotorPID.h"
 #include "DeadReckoning.h"
 
-
+std_msgs::Int32 debug;
 
 //To start communication, use:
 //rosrun rosserial_python serial_node.py /dev/ttyACM0 _baud:=1000000 (remember #define USE_USBCON 1)
@@ -63,10 +63,7 @@ unsigned long wait = 0;
 
 void setup()
 {
-  motors[0].setup_pins(ISR1);
-  motors[1].setup_pins(ISR2);
-  motors[2].setup_pins(ISR3);
-  motors[3].setup_pins(ISR4);
+  setup_motors();
 
   nh.getHardware()->setBaud(1000000);
   nh.initNode();
@@ -109,6 +106,8 @@ void loop()
     
     loopCount = 0;
     publish_tf();
+    
+    debug.data = motors[3].encCount;
     p2.publish( &debug );
   }
 
