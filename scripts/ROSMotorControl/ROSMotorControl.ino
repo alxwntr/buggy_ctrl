@@ -3,16 +3,15 @@
 #include <tf/transform_broadcaster.h>
 #include <std_msgs/Int32.h>
 #include <geometry_msgs/Twist.h>
-#include "MotorPID.h"
+
 #include "DeadReckoning.h"
+#include "MotorArray.h"
 
 std_msgs::Int32 debug;
 
 //To start communication, use:
 //rosrun rosserial_python serial_node.py /dev/ttyACM0 _baud:=1000000 (remember #define USE_USBCON 1)
 //rosrun rosserial_python serial_node.py /dev/ttyAMA1  _baud:=1000000 on pi serial pins)
-
-int dmd[num_motors] = {0, 0, 0, 0}; //Not really sure where to put this...
 
 //-------------------------
 //  ROS stuff
@@ -93,11 +92,8 @@ void loop()
   mainLoopTime = micros();
   loopCount += 1;
 
-  set_levels(confirm, dmd, num_motors);
-
-  for (int i = 0; i < num_motors; i++)
-  {
-    motors[i].process_pid(dmd[i]);
+  for (auto m: motors) {
+    m.process_pid(confirm);
   }
 
   if (loopCount = tfRateDivisor)

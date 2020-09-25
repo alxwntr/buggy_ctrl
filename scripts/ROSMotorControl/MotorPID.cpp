@@ -11,19 +11,6 @@ static const float Ki = 10.0;
 static const float Kd = 0.01;
 
 //-------------------
-// Convert Twist commands to individual motor demands
-//-------------------
-
-void
-set_levels(geometry_msgs::Twist &confirm, int dmd[], int num_motors)
-{
-  for (int i = 0; i < num_motors; i++)
-  {
-    dmd[i] = confirm.linear.x + (i % 2 ? 1 : -1) * confirm.angular.z;
-  }
-}
-
-//-------------------
 // MotorController Class
 //-------------------
 
@@ -41,8 +28,10 @@ MotorController::setup_pins (void(*isr)(void))
 
 //PID loop:
 void 
-MotorController::process_pid (int demand)
+MotorController::process_pid (const geometry_msgs::Twist &twist)
 {
+  auto demand  = twist.linear.x + (RHS ? 1 : -1) * twist.angular.z;
+
   //Allow spd_to reach zero if no motion
   if ((micros() - lastTime_) > 50000)
   {

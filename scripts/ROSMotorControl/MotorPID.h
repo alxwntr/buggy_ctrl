@@ -8,20 +8,20 @@ const int angDmdMax = 100;
 
 const float dT = 0.02; //50Hz - can't go too high because of lack of encoder pulses
 
-void set_levels(geometry_msgs::Twist &confirm, int dmd[], int num_motors);
-
 class MotorController {
   public:
-    int dir = 0; // -1 = bkwrds, 0 = static, 1 = frwrds (need to think how to sort this out)
+    const bool  RHS;
+    // -1 = bkwrds, 0 = static, 1 = frwrds (need to think how to sort this out)
+    int         dir = 0;
 
     volatile float encCount = 0.0;
 
-    MotorController (int encPin, int motorA, int motorB)
-      : encPin_(encPin), motorA_(motorA), motorB_(motorB)
+    MotorController (bool rhs, int encPin, int motorA, int motorB)
+      : RHS(rhs), encPin_(encPin), motorA_(motorA), motorB_(motorB)
     { }
 
     void setup_pins (void(*isr)(void));
-    void process_pid (int demand);
+    void process_pid (const geometry_msgs::Twist &twist);
     void handle_irq ();
 
   private:
