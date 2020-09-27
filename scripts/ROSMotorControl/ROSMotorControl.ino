@@ -21,11 +21,6 @@ ros::NodeHandle nh;
 
 geometry_msgs::Twist confirm;
 
-//Position variables:
-float x = 0.0;
-float y = 0.0;
-float theta = 0.0;
-
 //Publishers and subscriber:
 ros::Publisher p1("demand_confirm", &confirm);
 ros::Publisher p2("debug", &debug);
@@ -78,10 +73,10 @@ void publish_tf()
   t.header.frame_id = odom;
   t.child_frame_id = base_link;
   
-  t.transform.translation.x = x;
-  t.transform.translation.y = y;
+  t.transform.translation.x = odometer.x;
+  t.transform.translation.y = odometer.y;
   
-  t.transform.rotation = tf::createQuaternionFromYaw(theta);
+  t.transform.rotation = tf::createQuaternionFromYaw(odometer.theta);
   t.header.stamp = nh.now();
 
   broadcaster.sendTransform(t);
@@ -98,12 +93,12 @@ void loop()
 
   if (loopCount = tfRateDivisor)
   {
-    calculate_moves(x, y, theta);
+    odometer.calculate_moves();
     
     loopCount = 0;
     publish_tf();
     
-    debug.data = motors[3].encCount;
+    debug.data = odometer.debug;
     p2.publish( &debug );
   }
 

@@ -1,15 +1,16 @@
+#include <Arduino.h>
+
 #include "DeadReckoning.h"
 #include "MotorArray.h"
 
-const float wheelbase = 0.12; // Dist between wheel centres. CHECK THIS
-const float wheelDia = 0.035;
+Odometer odometer { 0.2, 0.035 }; // Dist between wheel centres: CHECK THIS
 
 //-------------------------
 //  Movement functions
 //-------------------------
 
 void
-calculate_moves(float &x, float &y, float &theta)
+Odometer::calculate_moves()
 {
   float runningTotal = 0.0;
   float angTotal = 0.0;
@@ -17,19 +18,20 @@ calculate_moves(float &x, float &y, float &theta)
   float angDist = 0.0;
   float dTheta = 0.0;
 
-  for (auto m : motors)
+  for (auto &m : motors)
   {
-    auto wheelDist = PI * wheelDia * m.encCount * m.dir / 300;
+    auto wheelDist = PI * wheelDia_ * m.encCount * m.dir / 300;
+    debug = m.dir;
     runningTotal += wheelDist;
     //Pos anti-clockwise, so add right, sub left
     angTotal += (m.RHS ? -1 : 1) * wheelDist;
-    m.encCount = 0;
+    m.reset_count();
   }
   fwdDist = runningTotal / motors.size();
   //Arc length traced by one side about the centre of car
   angDist = angTotal / 2;
 
-  dTheta = angDist / wheelbase;
+  dTheta = angDist / wheelbase_;
   x += fwdDist * cos(theta + dTheta / 2);
   y += fwdDist * sin(theta + dTheta / 2);
   theta += dTheta;

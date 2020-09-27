@@ -90,6 +90,12 @@ MotorController::process_pid (const geometry_msgs::Twist &twist)
   analogWrite(drivePin_, pwm);
 }
 
+void
+MotorController::reset_count()
+{
+  encCount = 0;
+}
+
 //Called from ISR#
 void 
 MotorController::handle_irq ()

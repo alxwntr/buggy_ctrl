@@ -8,6 +8,10 @@ const int angDmdMax = 100;
 
 const float dT = 0.02; //50Hz - can't go too high because of lack of encoder pulses
 
+//-------------------
+// MotorController Class
+//-------------------
+
 class MotorController {
   public:
     const bool  RHS;
@@ -22,6 +26,7 @@ class MotorController {
 
     void setup_pins (void(*isr)(void));
     void process_pid (const geometry_msgs::Twist &twist);
+    void reset_count();
     void handle_irq ();
 
   private:
