@@ -23,9 +23,9 @@ class ring_buffer {
 
     void    clear() { start = valid = 0; }
     bool    empty() { return valid == 0; }
-
-    // These are undefined if empty() returns true
     size_t  count() { return valid; }
+
+    // These are undefined if empty() is true or count() == 0
     member  first() { return buffer[start]; }
     member  last()  { return buffer[(start + valid - 1) % size]; }
 

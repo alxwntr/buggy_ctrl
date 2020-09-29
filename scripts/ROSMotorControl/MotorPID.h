@@ -3,6 +3,8 @@
 
 #include <geometry_msgs/Twist.h>
 
+#include "Encoder.h"
+
 const int linDmdMax = 200;
 const int angDmdMax = 100;
 
@@ -18,25 +20,26 @@ class MotorController {
     // -1 = bkwrds, 0 = static, 1 = frwrds (need to think how to sort this out)
     int         dir = 0;
 
-    volatile float encCount = 0.0;
-
     MotorController (bool rhs, int encPin, int motorA, int motorB)
-      : RHS(rhs), encPin_(encPin), motorA_(motorA), motorB_(motorB)
+      : RHS(rhs), encoder_(encPin), motorA_(motorA), motorB_(motorB)
     { }
 
     void setup_pins (void(*isr)(void));
     void process_pid (const geometry_msgs::Twist &twist);
-    void reset_count();
-    void handle_irq ();
+
+    // XXX These should not forward through the MotorController
+    void handle_irq() {
+        encoder_.handle_irq();
+    }
+    float distance() {
+        return encoder_.distance() * dir;
+    }
 
   private:
-    const int encPin_;
+    Encoder     encoder_;
+
     const int motorA_;
     const int motorB_;
-
-    volatile unsigned long lastTime_ = 0;
-    volatile double spd_ = 0;
-    volatile int count_ = 0;
 
     float lastError_ = 0.0, errorSum_ = 0.0;
 

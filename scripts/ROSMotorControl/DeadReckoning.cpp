@@ -20,12 +20,12 @@ Odometer::calculate_moves()
 
   for (auto &m : motors)
   {
-    auto wheelDist = PI * wheelDia_ * m.encCount * m.dir / 300;
+    // XXX where does this 300 come from?
+    auto wheelDist = PI * wheelDia_ * m.distance() / 300;
     debug = m.dir;
     runningTotal += wheelDist;
     //Pos anti-clockwise, so add right, sub left
     angTotal += (m.RHS ? -1 : 1) * wheelDist;
-    m.reset_count();
   }
   fwdDist = runningTotal / motors.size();
   //Arc length traced by one side about the centre of car
