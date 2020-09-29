@@ -87,7 +87,7 @@ void loop()
   mainLoopTime = micros();
   loopCount += 1;
 
-  for (auto m: motors) {
+  for (auto &m: motors) {
     m.process_pid(confirm);
   }
 

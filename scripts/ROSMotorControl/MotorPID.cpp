@@ -80,6 +80,7 @@ MotorController::process_pid (const geometry_msgs::Twist &twist)
   //Calculate error and set PWM level:
   error       = demand - scaledSpd;
   errorSum_   += error * dT;
+  errorSum_   = constrain(errorSum_, -255, 255);
   pwm         = Kp * error + Ki * errorSum_ + Kd * (error - lastError_) / dT;
   lastError_  = error;
 
