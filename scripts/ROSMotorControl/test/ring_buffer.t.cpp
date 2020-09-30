@@ -3,6 +3,8 @@
 #include "tap.h"
 #include "ring_buffer.h"
 
+using namespace tap::exports;
+
 ring_buffer<unsigned long, 5> ticks;
 
 void show_ticks () {

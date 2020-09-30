@@ -12,7 +12,7 @@ mkdir t
 
 for cpp in *.t.cpp
 do
-    c++ -I.. -o t/"${cpp%.cpp}" "$cpp"
+    c++ -I.. -o t/"${cpp%.cpp}" "$cpp" tap.cpp
 done
 
 prove -e '' "$@"
