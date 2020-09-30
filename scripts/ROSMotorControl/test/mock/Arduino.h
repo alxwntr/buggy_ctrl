@@ -26,9 +26,18 @@ attachInterrupt(uint32_t irq, void(*isr)(void), uint32_t mode) {
         {{irq, (intptr_t)isr, mode}}});
 }
 
+namespace tap {
+    inline uint32_t micros_result = 0;
+
+    inline void
+    set_micros(uint32_t t) { 
+        micros_result = t;
+    }
+}
+
 inline uint32_t micros() {
     tap::mock_results.push_back({"micros", {}});
-    return 64;
+    return tap::micros_result;
 }
 
 inline void
