@@ -34,7 +34,7 @@ do
     include="$(find_tag INCLUDE "$cpp")"
     sources="$(find_tag SOURCES "$cpp")"
 
-    doit c++ -I. -I.. $include -o "$prog" "$cpp" tap.cpp $sources
+    doit c++ -std=c++17 -I. -I.. $include -o "$prog" "$cpp" tap.cpp $sources
 done
 
 prove -e '' "$@"

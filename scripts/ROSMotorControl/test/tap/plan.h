@@ -8,7 +8,7 @@ namespace tap {
 extern int  test_count;
 extern int  test_failed;
 
-inline void ok (bool test, const char *msg) {
+inline void ok (bool test, std::string msg) {
     test_count++;
     if (!test)
         test_failed++;

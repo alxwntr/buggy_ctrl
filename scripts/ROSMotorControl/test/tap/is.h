@@ -4,7 +4,7 @@
 namespace tap {
 
 template<typename T>
-void is (T got, T want, const char *msg) {
+void is (T got, T want, std::string msg) {
     if (want == got) {
         ok(true, msg);
     }
@@ -16,7 +16,7 @@ void is (T got, T want, const char *msg) {
 }
 
 template<typename T>
-inline void is (T got, intmax_t want, const char *msg) {
+inline void is (T got, intmax_t want, std::string msg) {
     is(got, (T)want, msg);
 }
 

@@ -15,7 +15,7 @@ extern mock_results_t mock_results;
 inline void clear_mock_results() { mock_results = {}; }
 
 inline void 
-mock_results_are(mock_results_t want, const char *msg) {
+mock_results_are(mock_results_t want, std::string msg) {
     is(mock_results, want, msg);
 }
 
