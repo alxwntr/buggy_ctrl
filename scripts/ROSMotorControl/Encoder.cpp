@@ -37,9 +37,11 @@ Encoder::speed ()
         return 0.0;
     }
 
-    float   interval    = float(last - first);
-    float   speed       = (speed_factor * count) / interval;
+    time    interval    = last - first;
+    if (interval == 0)
+        return 0.0;
 
+    float   speed       = (speed_factor * count) / float(interval);
     return speed;
 }
 
