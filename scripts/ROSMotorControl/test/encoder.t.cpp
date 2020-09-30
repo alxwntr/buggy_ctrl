@@ -31,8 +31,37 @@ check_constructor()
 void
 check_speed_distance(float speed, float distance, std::string msg)
 {
-    is(encoder.speed(),     speed,      "speed " + msg);
-    is(encoder.distance(),  distance,   "distance " + msg);
+    float   got;
+
+    clear_mock_results();
+    got = encoder.speed();
+
+    is(got,         speed,      "speed " + msg);
+    mock_results_are({{
+        {"noInterrupts"s,    {}}, 
+        {"interrupts"s,      {}},
+    }},                         "speed syscalls " + msg);
+
+    clear_mock_results();
+    got = encoder.distance();
+
+    is(got,         distance,   "distance " + msg);
+    mock_results_are({{
+        {"noInterrupts"s,    {}},
+        {"interrupts"s,      {}},
+    }},                         "distance syscalls " + msg);
+}
+
+void
+check_setup_pins()
+{
+    clear_mock_results();
+    encoder.setup_pins(mock_isr);
+
+    mock_results_are({{
+        {"pinMode"s,            {{76, INPUT}}},
+        {"attachInterrupt"s,    {{76, (intptr_t)mock_isr, CHANGE}}},
+    }},                                     "setup_pins");
 }
 
 int
@@ -41,24 +70,15 @@ main(int argc, char **argv)
     check_constructor();
     check_speed_distance(0, 0, "at start");
 
-    clear_mock_results();
-    encoder.setup_pins(mock_isr);
+    check_setup_pins();
 
-    mock_results_are({{
-        {"pinMode",             {{76, INPUT}}},
-        {"attachInterrupt",     {{76, (intptr_t)mock_isr, CHANGE}}},
-    }},                                     "setup_pins");
-
-    clear_mock_results();
     tap::set_micros(4200);
     encoder.handle_irq();
 
-    mock_results_are({{ 
-        {"micros", {}},
-    }},                             "handle_irq calls micros once");
     is(tcount,              1,      "handle_irq incs tick_count");
     is(ttimes.count(),      1,      "handle_irq adds a time");
     is(ttimes.first(),      4200,   "handle_irq adds correct time");
+    check_speed_distance(0, 1,      "after one irq");
 
     done_testing();
 }

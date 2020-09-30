@@ -36,7 +36,6 @@ namespace tap {
 }
 
 inline uint32_t micros() {
-    tap::mock_results.push_back({"micros", {}});
     return tap::micros_result;
 }
 
