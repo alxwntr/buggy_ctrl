@@ -4,6 +4,9 @@
 #include <cstdlib>
 #include <iostream>
 #include <sstream>
+#include <string>
+#include <vector>
+#include <map>
 
 template<std::ostream *dest>
 class log_ : public std::ostringstream {
@@ -64,6 +67,46 @@ void done_testing (int plan) {
 
 void done_testing () { done_testing(_tap_count); }
 
+typedef std::string str;
+
+str pretty(const int v)                 { return std::to_string(v); }
+str pretty(const long v)                { return std::to_string(v); }
+str pretty(const unsigned int v)        { return std::to_string(v); }
+str pretty(const unsigned long v)       { return std::to_string(v); }
+str pretty(const float v)               { return std::to_string(v); }
+str pretty(const str v)                 { return v; }
+
+// This is stark staring crazy. We have to prototype this overload here,
+// otherwise when we attempt to instantiate pretty(vector<map<>>) the
+// compiler can't find an overload to use for the recursive call. But by
+// the time the instantiation is happening the complier has already seen
+// the relevant prototype. Presumably this means an overload for X won't 
+// be properly picked up by pretty(vector<X>). Grrr.
+template<typename K, typename V>
+std::string pretty(const std::map<K, V> &mp);
+
+template<typename V>
+std::string pretty(const std::vector<V> &vc) {
+    std::ostringstream s;
+    s << "[";
+    for (const auto &v: vc) {
+        s << pretty(v) << ", ";
+    }
+    s << "]";
+    return s.str();
+}
+
+template<typename K, typename V>
+std::string pretty(const std::map<K, V> &mp) {
+    std::ostringstream s;
+    s << '{';
+    for (const auto &p: mp) {
+        s << pretty(p.first) << ":" << pretty(p.second) << ", ";
+    }
+    s << '}';
+    return s.str();
+}
+
 template<typename T>
 void is (T got, T want, const char *msg) {
     if (want == got) {
@@ -71,8 +114,8 @@ void is (T got, T want, const char *msg) {
     }
     else {
         ok(false, msg);
-        diag() << "Got " << got;
-        diag() << "Expected " << want;
+        diag() << "Got " << pretty(got);
+        diag() << "Expected " << pretty(want);
     }
 }
 
