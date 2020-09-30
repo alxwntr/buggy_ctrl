@@ -5,14 +5,36 @@
 #
 # Call with -v to get full test output, and/or with test names.
 
-set -ex
-
 rm -rf t
 mkdir t
 
+find_tag () {
+    local tag=$1
+    local file=$2
+
+    match="$(grep "^//$tag:" "$file")"
+    [ -z "$match" ] && return 0
+
+    match="${match#//$tag:}"
+    echo "$match"
+}
+
+doit () {
+    echo "$*"
+    if ! "$@"
+    then
+        echo "Command failed with '$?'"
+        exit 1
+    fi
+}
+
 for cpp in *.t.cpp
 do
-    c++ -I.. -o t/"${cpp%.cpp}" "$cpp" tap.cpp
+    prog="t/${cpp%.cpp}"
+    include="$(find_tag INCLUDE "$cpp")"
+    sources="$(find_tag SOURCES "$cpp")"
+
+    doit c++ -I. -I.. $include -o "$prog" "$cpp" tap.cpp $sources
 done
 
 prove -e '' "$@"

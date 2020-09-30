@@ -24,7 +24,9 @@ class Encoder {
     // This returns the distance travelled since last time it was called
     float   distance    ();
 
+#ifndef _Encoder_TESTING
     private:
+#endif
     typedef unsigned long   time;
 
     const int               pinA;
