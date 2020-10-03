@@ -89,6 +89,7 @@ void loop()
 
   for (auto &m: motors) {
     m.process_pid(confirm);
+    debug.data = m.pwm;
   }
 
   if (loopCount = tfRateDivisor)
@@ -98,7 +99,6 @@ void loop()
     loopCount = 0;
     publish_tf();
     
-    debug.data = odometer.debug;
     p2.publish( &debug );
   }
 

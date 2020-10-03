@@ -55,15 +55,13 @@ MotorController::set_pins(int& drivePin, int& gndPin, int demand)
   }
 }
 
-int 
-MotorController::set_pwm(int demand)
+void 
+MotorController::set_pwm(int demand, float speed)
 {
-  //Temporary variables:
-  int     pwm;
-  auto speed  = encoder_.speed();
-  /* XXX This 170 should be the max expected encoder speed. How is it
-   * derived? */
-  int     scaledSpd = map(speed, 0, 170, 0, 255);
+  /*  At full 255 pwm, wheel speed is around 3 Hz
+   *  Roughly, 3 Hz wheel freq = 150 Hz encoder freq
+   */
+  int     scaledSpd = map(speed, 0, 150, 0, 255);
   float   error;
 
   //Calculate error and set PWM level:
@@ -72,12 +70,10 @@ MotorController::set_pwm(int demand)
   errorSum_   = constrain(errorSum_, -255, 255);
   pwm         = Kp * error + Ki * errorSum_ + Kd * (error - lastError_) / dT;
   lastError_  = error;
-
-  return pwm;
 }
 
 void
-MotorController::write_to_pins(int gndPin, int drivePin, int pwm)
+MotorController::write_to_pins(int gndPin, int drivePin)
 {
   //Constrain PWM:
   pwm = constrain(pwm, 0, 255);
@@ -91,8 +87,8 @@ MotorController::write_to_pins(int gndPin, int drivePin, int pwm)
 void 
 MotorController::process_pid (const geometry_msgs::Twist &twist)
 {
-  auto demand = twist.linear.x + (RHS ? 1 : -1) * twist.angular.z;
-  auto speed  = encoder_.speed();
+  auto demand = twist.linear.x + (RHS ? 1 : -1) * twist.angular.z * distFromCentreline_;
+  float speed  = encoder_.speed(); // (Hz for the encoder)
   int drivePin, gndPin;
 
   //Coast if demand is zero
@@ -101,7 +97,7 @@ MotorController::process_pid (const geometry_msgs::Twist &twist)
     coast();
     return;
   }
-  
+
   //Brake if travelling in wrong direction
   if (speed != 0 && dir*demand < 0)
   {
@@ -113,6 +109,6 @@ MotorController::process_pid (const geometry_msgs::Twist &twist)
   set_pins(drivePin, gndPin, demand);
   if (demand < 0) demand = -demand;
 
-  int pwm = set_pwm(demand);
-  write_to_pins(gndPin, drivePin, pwm);
+  set_pwm(demand, speed);
+  write_to_pins(gndPin, drivePin);
 }

@@ -38,4 +38,3 @@ setup_motors()
     motors[2].setup_pins(ISR3);
     motors[3].setup_pins(ISR4);
 }
-

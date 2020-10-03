@@ -3,6 +3,7 @@
 #include "DeadReckoning.h"
 #include "MotorArray.h"
 
+// Odometer object: wheelbase[m], wheel diameter[m], gearbox ratio[-]
 Odometer odometer { 0.2, 0.035, 51.45 }; // Dist between wheel centres: CHECK THIS
 
 //-------------------------
@@ -20,7 +21,6 @@ Odometer::calculate_moves()
 
   for (auto &m : motors)
   {
-    // XXX where does this 300 come from?
     auto wheelDist = PI * wheelDia_ * m.revolutions() / gearboxRatio_;
     debug = m.dir;
     runningTotal += wheelDist;

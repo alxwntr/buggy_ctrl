@@ -41,7 +41,7 @@ Encoder::speed ()
     if (interval == 0)
         return 0.0;
 
-    float   speed       = (speed_factor * count) / float(interval);
+    float   speed       = (count / edgesPerRev) / float(interval); // Gives Hz for the encoder
     return speed;
 }
 
