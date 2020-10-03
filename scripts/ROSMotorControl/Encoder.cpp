@@ -32,7 +32,7 @@ Encoder::speed ()
     if (count == 0)
         return 0.0;
 
-    if (micros() - last > 50000) {
+    if (micros() - last > spdTimeout) {
         noInterrupts(); tick_times.clear(); interrupts();
         return 0.0;
     }
@@ -46,12 +46,12 @@ Encoder::speed ()
 }
 
 float
-Encoder::distance()
+Encoder::revolutions()
 {
     noInterrupts();
     int32_t ticks   = tick_count;
     tick_count      = 0;
     interrupts();
 
-    return distance_factor * float(ticks);
+    return float(ticks) / edgesPerRev;
 }

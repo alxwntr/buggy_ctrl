@@ -31,8 +31,8 @@ class MotorController {
     void handle_irq() {
         encoder_.handle_irq();
     }
-    float distance() {
-        return encoder_.distance() * dir;
+    float revolutions() {
+        return encoder_.revolutions() * dir;
     }
 
   private:

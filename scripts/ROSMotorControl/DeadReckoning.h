@@ -11,8 +11,8 @@ class Odometer {
     float theta = 0.0;
     float debug;
 
-    Odometer (float wheelbase, float wheelDia)
-      : wheelbase_(wheelbase), wheelDia_(wheelDia)
+    Odometer (float wheelbase, float wheelDia, float gearboxRatio)
+      : wheelbase_(wheelbase), wheelDia_(wheelDia), gearboxRatio_(gearboxRatio)
     { }
     
     void
@@ -21,6 +21,7 @@ class Odometer {
    private:
     const float wheelbase_;
     const float wheelDia_;
+    const float gearboxRatio_;
 };
 extern Odometer odometer;
 

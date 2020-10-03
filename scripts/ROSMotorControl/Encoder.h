@@ -14,15 +14,17 @@ class Encoder {
         speed_factor(333333.0f),
         /* For now set the distance factor to 1. This should be
          * calculated based on wheel radius etc. */
-        distance_factor(1.0f)
+        edgesPerRev(6.0f),
+        /* spdTimeout allows spd to reach zero after a set period */
+        spdTimeout(50000ul)
         { }
 
     void    setup_pins  (void(*isr)(void));
     void    handle_irq  ();
 
     float   speed       ();
-    // This returns the distance travelled since last time it was called
-    float   distance    ();
+    // This returns the number of revolutions since last time it was called
+    float   revolutions    ();
 
 #ifndef _Encoder_TESTING
     private:
@@ -33,10 +35,12 @@ class Encoder {
     //const int             pinB;   // not yet
 
     const float             speed_factor;
-    const float             distance_factor;
+    const float             edgesPerRev;
 
     ring_buffer<time, 5>    tick_times;
     int32_t                 tick_count;
+
+    const time              spdTimeout;
 };
 
 #endif
