@@ -24,48 +24,43 @@ MotorController::setup_pins (void(*isr)(void))
   encoder_.setup_pins(isr);
 }
 
-//PID loop:
 void 
-MotorController::process_pid (const geometry_msgs::Twist &twist)
+MotorController::coast()
 {
-  auto demand = twist.linear.x + (RHS ? 1 : -1) * twist.angular.z;
-  auto speed  = encoder_.speed();
+  analogWrite(motorA_, 0);
+  analogWrite(motorB_, 0);
+}
 
-  //Coast if demand is zero
-  if(demand == 0)
-  {
-    analogWrite(motorA_, 0);
-    analogWrite(motorB_, 0);
-    return;
-  }
-  
-  //Brake if travelling in wrong direction
-  if (speed != 0 && dir*demand < 0)
+void 
+MotorController::brake()
   {
     analogWrite(motorA_, 255);
     analogWrite(motorB_, 255);
-    return;
   }
 
-  //Set drive and gnd pins
+void 
+MotorController::set_pins(int& drivePin, int& gndPin, int demand)
+{
   if (demand >= 0)
   {
-    drivePin_ = motorA_;
-    gndPin_ = motorB_;
-    analogWrite(gndPin_, 0);
+    drivePin = motorA_;
+    gndPin = motorB_;
     dir = 1;
   }
   if (demand < 0)
   {
-    drivePin_ = motorB_;
-    gndPin_ = motorA_;
-    analogWrite(gndPin_, 0);
+    drivePin = motorB_;
+    gndPin = motorA_;
     dir = -1;
-    demand = -demand;
   }
+}
 
+int 
+MotorController::set_pwm(int demand)
+{
   //Temporary variables:
   int     pwm;
+  auto speed  = encoder_.speed();
   /* XXX This 170 should be the max expected encoder speed. How is it
    * derived? */
   int     scaledSpd = map(speed, 0, 170, 0, 255);
@@ -78,9 +73,46 @@ MotorController::process_pid (const geometry_msgs::Twist &twist)
   pwm         = Kp * error + Ki * errorSum_ + Kd * (error - lastError_) / dT;
   lastError_  = error;
 
-  //Constrain PWM and ensure it gets to zero (immediately):
-  if (demand == 0) pwm = 0;
-  if (pwm < 0)        pwm = 0;
-  if (pwm > 255)      pwm = 255;
-  analogWrite(drivePin_, pwm);
+  return pwm;
+}
+
+void
+MotorController::write_to_pins(int gndPin, int drivePin, int pwm)
+{
+  //Constrain PWM:
+  pwm = constrain(pwm, 0, 255);
+
+  //write to pins
+  analogWrite(gndPin, 0);
+  analogWrite(drivePin, pwm);
+}
+
+//PID loop:
+void 
+MotorController::process_pid (const geometry_msgs::Twist &twist)
+{
+  auto demand = twist.linear.x + (RHS ? 1 : -1) * twist.angular.z;
+  auto speed  = encoder_.speed();
+  int drivePin, gndPin;
+
+  //Coast if demand is zero
+  if(demand == 0)
+  {
+    coast();
+    return;
+  }
+  
+  //Brake if travelling in wrong direction
+  if (speed != 0 && dir*demand < 0)
+  {
+    brake();
+    return;
+  }
+
+  //Set drive and gnd pins
+  set_pins(drivePin, gndPin, demand);
+  if (demand < 0) demand = -demand;
+
+  int pwm = set_pwm(demand);
+  write_to_pins(gndPin, drivePin, pwm);
 }

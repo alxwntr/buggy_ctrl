@@ -43,7 +43,11 @@ class MotorController {
 
     float lastError_ = 0.0, errorSum_ = 0.0;
 
-    int drivePin_, gndPin_;
+    void coast();
+    void brake();
+    void set_pins(int& drivePin, int& gndPin, int demand);
+    int set_pwm(int demand);
+    void write_to_pins(int gndPin, int drivePin, int pwm);
 };
 
 #endif
