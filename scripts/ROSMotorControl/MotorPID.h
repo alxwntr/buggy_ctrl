@@ -4,9 +4,9 @@
 #include <geometry_msgs/Twist.h>
 
 #include "Encoder.h"
-
-const int linDmdMax = 10000;
-const int angDmdMax = 10000;
+// Demand limits - SI units now in use
+const int linDmdMax = 2;
+const int angDmdMax = 2;
 
 const float dT = 0.02; //50Hz - can't go too high because of lack of encoder pulses
 
@@ -37,20 +37,23 @@ class MotorController {
         return encoder_.revolutions() * dir;
     }
 
-  private:
+  //private:
     Encoder     encoder_;
 
     const int motorA_;
     const int motorB_;
     //Temporary position for this:
     const float distFromCentreline_ = 0.1;
-    
+    const float wheelDia = 0.035;
+    const float gearboxRatio = 51.45;
+
+    float speed_ = 0.0;
     float lastError_ = 0.0, errorSum_ = 0.0;
 
     void coast();
     void brake();
     void set_pins(int& drivePin, int& gndPin, int demand);
-    void set_pwm(int demand, float speed);
+    void set_pwm(int demand);
     void write_to_pins(int gndPin, int drivePin);
 };
 

@@ -1,13 +1,13 @@
 #include <ros.h>
 #include <tf/tf.h>
 #include <tf/transform_broadcaster.h>
-#include <std_msgs/Int32.h>
+#include <std_msgs/Float32.h>
 #include <geometry_msgs/Twist.h>
 
 #include "DeadReckoning.h"
 #include "MotorArray.h"
 
-std_msgs::Int32 debug;
+std_msgs::Float32 debug;
 
 //To start communication, use:
 //rosrun rosserial_python serial_node.py /dev/ttyACM0 _baud:=1000000 (remember #define USE_USBCON 1)
@@ -89,7 +89,7 @@ void loop()
 
   for (auto &m: motors) {
     m.process_pid(confirm);
-    debug.data = m.pwm;
+    debug.data = m.encoder_.speed();
   }
 
   if (loopCount = tfRateDivisor)
