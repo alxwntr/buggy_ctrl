@@ -37,13 +37,14 @@ class MotorController {
         return encoder_.revolutions() * dir;
     }
 
-  //private:
+  private:
     Encoder     encoder_;
 
     const int motorA_;
     const int motorB_;
-    //Temporary position for this:
-    const float distFromCentreline_ = 0.1;
+    //Temporary position for these.
+    //The suggestion is to have a physical constants object globally available.
+    const float distFromCentreline_ = 0.075;
     const float wheelDia = 0.035;
     const float gearboxRatio = 51.45;
 

@@ -89,7 +89,6 @@ void loop()
 
   for (auto &m: motors) {
     m.process_pid(confirm);
-    debug.data = m.encoder_.speed();
   }
 
   if (loopCount = tfRateDivisor)

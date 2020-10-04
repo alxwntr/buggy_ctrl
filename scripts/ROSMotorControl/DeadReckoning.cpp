@@ -4,7 +4,7 @@
 #include "MotorArray.h"
 
 // Odometer object: wheelbase[m], wheel diameter[m], gearbox ratio[-]
-Odometer odometer { 0.2, 0.035, 51.45 }; // Dist between wheel centres: CHECK THIS
+Odometer odometer { 0.15, 0.035, 51.45 };
 
 //-------------------------
 //  Movement functions

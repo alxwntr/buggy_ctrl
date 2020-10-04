@@ -6,6 +6,7 @@
 //  PID variables
 //-------------------------
 
+/* These need to be tunable from outside the MotorController in the future. */
 static const float Kp = 0.5;
 static const float Ki = 10.0;
 static const float Kd = 0.01;
@@ -86,7 +87,7 @@ MotorController::process_pid (const geometry_msgs::Twist &twist)
 {
   auto demandFS = twist.linear.x + (RHS ? 1 : -1) * twist.angular.z * distFromCentreline_; //Demanded floor speed for this motor
   auto demandEnc = demandFS * gearboxRatio / (PI * wheelDia); //Demanded encoder speed for this motor
-  speed_  = encoder_.speed(); // (Hz for the encoder)
+  speed_  = encoder_.speed(); // (Revs per sec for the encoder)
   int drivePin, gndPin;
 
   //Coast if demand is zero
