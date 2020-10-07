@@ -18,16 +18,21 @@ class Monitor {
     public:
     typedef const char *cstr;
 
-    Monitor() : enabled(false) { }
+    Monitor() : enabled(false), pub(nullptr) { }
+
+    virtual ~Monitor() {
+        /* It is always safe to delete nullptr */
+        delete pub;
+    }
 
     void    advertise(ros::NodeHandle &nh)
-                            { nh.advertise(pub); }
+                            { nh.advertise(*pub); }
     void    enable(bool e)  { enabled = e; }
-    cstr    getName()       { return pub.topic_; }
+    cstr    getName()       { return pub->topic_; }
 
     protected:
     bool            enabled;
-    ros::Publisher  pub;
+    ros::Publisher  *pub;
 
     MonitorManager &mm();
 };
@@ -71,50 +76,53 @@ class MonitorManager {
     { }
 };
 
-MonitorManager &Monitor::mm() {
+inline MonitorManager &Monitor::mm() {
     return MonitorManager::get();
 }
 
 class MonitorInt : public Monitor {
     public:
-    MonitorInt(cstr topic) :
-        pub(topic, &MonitorManager::get().msg_int)
-    { }
+    MonitorInt(cstr topic) {
+        auto msg    = &mm().msg_int;
+        pub         = new ros::Publisher(topic, msg);
+    }
 
     void report(int value) {
         if (!enabled) return;
 
         auto &msg   = mm().msg_int;
         msg.data    = value;
-        pub.publish(&msg);
+        pub->publish(&msg);
     }
 };
 
 class MonitorFloat : public Monitor {
     public:
-    MonitorFloat(cstr topic) :
-        pub(topic, &MonitorManager::get().msg_float)
-    { }
+    MonitorFloat(cstr topic) {
+        auto msg    = &mm().msg_float;
+        pub         = new ros::Publisher(topic, msg);
+    }
 
     void report(float value) {
         if (!enabled) return;
 
-        auto &msg   = MonitorManager::get().msg_float;
+        auto &msg   = mm().msg_float;
         msg.data    = value;
-        pub.publish(&msg);
+        pub->publish(&msg);
     }
 };
 
 class MonitorTwist : public Monitor {
     public:
-    MonitorTwist(cstr topic) :
-        pub(topic, &MonitorManager::get().msg_twist)
-    { }
+    MonitorTwist(cstr topic) {
+        auto msg    = &mm().msg_twist;
+        pub         = new ros::Publisher(topic, msg);
+    }
 
     void report(const geometry_msgs::Twist &value) {
         if (!enabled) return;
          
-        pub.publish(&value);
+        pub->publish(&value);
     }
 };
 
