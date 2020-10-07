@@ -1,0 +1,2 @@
+string channel
+bool enable
