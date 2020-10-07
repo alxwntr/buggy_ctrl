@@ -5,6 +5,7 @@
 #include <geometry_msgs/Twist.h>
 
 #include "DeadReckoning.h"
+#include "Monitor.h"
 #include "MotorArray.h"
 
 std_msgs::Float32 debug;
@@ -19,17 +20,20 @@ std_msgs::Float32 debug;
 
 ros::NodeHandle nh;
 
-geometry_msgs::Twist confirm;
+geometry_msgs::Twist    confirm;
+MonitorTwist            twist_monitor("/monitor/twist");
 
 //Publishers and subscriber:
-ros::Publisher p1("demand_confirm", &confirm);
+//ros::Publisher p1("demand_confirm", &confirm);
 ros::Publisher p2("debug", &debug);
 
 void callback(const geometry_msgs::Twist& msg)
 {
   confirm.linear.x = constrain (msg.linear.x, -linDmdMax, linDmdMax);
   confirm.angular.z = constrain (msg.angular.z, -angDmdMax, angDmdMax);
-  p1.publish( &confirm );
+  //p1.publish( &confirm );
+
+  twist_monitor.report(confirm);
 }
 
 ros::Subscriber<geometry_msgs::Twist> s("demand_out", &callback);
@@ -61,9 +65,10 @@ void setup()
 
   nh.getHardware()->setBaud(1000000);
   nh.initNode();
-  nh.advertise(p1);
+  //nh.advertise(p1);
   nh.advertise(p2);
   nh.subscribe(s);
+  MonitorManager::get().advertise(nh);
   broadcaster.init(nh);
 }
 
