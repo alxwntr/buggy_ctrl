@@ -41,8 +41,10 @@ Encoder::speed ()
     if (interval == 0)
         return 0.0;
 
-    float   speed       = (count / edgesPerRev) / (float(interval) / 1000000); // Gives revs per sec for the encoder
-    return speed;
+    float   edgesPerUs   = count / float(interval);
+    float   revsPerSec   = (edgesPerUs * 1000000) / edgesPerRev;
+
+    return revsPerSec;
 }
 
 float
