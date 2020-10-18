@@ -22,8 +22,8 @@ class MotorController {
     int         dir = 0;
     float pwm = 0.0;
 
-    MotorController (bool rhs, int encPin, int motorA, int motorB)
-      : RHS(rhs), encoder_(encPin), motorA_(motorA), motorB_(motorB)
+    MotorController (bool rhs, int encA, int encB, int motorA, int motorB)
+      : RHS(rhs), encoder_(encA, encB), motorA_(motorA), motorB_(motorB)
     { }
 
     void setup_pins (void(*isr)(void));

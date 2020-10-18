@@ -5,8 +5,10 @@
 
 class Encoder {
     public:
-    Encoder (int pinA) : 
-        pinA(pinA), /* Encoder signal pin. Could be augmented with a second for quadrature at a later date. */
+    Encoder (int pinA, int pinB) : 
+         /* Encoder signal pins. Pin A has an interrupt; pin B is used
+          * only for quadrature. */
+        pinA(pinA), pinB(pinB),
         edgesPerRev(6.0f), /* number of edges in one encoder revolution. Currently six. */
         spdTimeout(50000ul) /* spdTimeout allows spd to reach zero after a set period */
         { }
@@ -24,7 +26,7 @@ class Encoder {
     typedef unsigned long   time;
 
     const int               pinA;
-    //const int             pinB;   // not yet
+    const int               pinB;
 
     const float             edgesPerRev;
 

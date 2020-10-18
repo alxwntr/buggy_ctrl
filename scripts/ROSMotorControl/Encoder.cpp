@@ -6,6 +6,7 @@ void
 Encoder::setup_pins(void(*isr)(void))
 {
     pinMode(pinA, INPUT); 
+    pinMode(pinB, INPUT);
     attachInterrupt(digitalPinToInterrupt(pinA), isr, CHANGE);
 }
 

@@ -8,18 +8,20 @@
      Back left,
      Back right}
 
-     Entries in the form [RHS?, Enc, M1, M2]
+     Entries in the form [RHS?, EncA, EncB, M1, M2]
 
      There are two levels of braces on the outside because std::array is
      a structure (class) containing an array, not a bare array.
 */
 
+/* XXX I have guessed at suitable pins for encB. I believe any spare
+ * pins should work (except 5). */
 MotorArray motors = {{
-  { false, A0, 12, 11 },
-  { true, A1, 10, 9 },
-  { false, A2, 2, 4 },
-  { true, A3, A4, A5 },
-}}; //Pins verified as working motor by motor, need to test all four together
+  { false, A0, 3, 12, 11 },
+  { true, A1, 6, 10, 9 },
+  { false, A2, 7, 2, 4 },
+  { true, A3, 8, A4, A5 },
+}}; 
 
 //-------------------------
 //  Interrupt functions
