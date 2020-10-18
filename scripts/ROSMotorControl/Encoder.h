@@ -3,6 +3,12 @@
 
 #include "ring_buffer.h"
 
+enum Direction {
+    Forward     = 1,
+    Backward    = -1,
+    Stopped     = 0,
+};
+
 class Encoder {
     public:
     Encoder (int pinA, int pinB) : 
@@ -25,12 +31,6 @@ class Encoder {
 #endif
     typedef unsigned long   time;
 
-    enum Direction {
-        Forward     = 1,
-        Backward    = -1,
-        Stopped     = 0,
-    };
-
     const int               pinA;
     const int               pinB;
 
@@ -39,7 +39,7 @@ class Encoder {
 
     ring_buffer<time, 5>    tick_times;
     int32_t                 tick_count;
-    int8_t                  tick_dir;
+    Direction               tick_dir;
 
     void    set_tick_dir    (Direction dir);
 };
