@@ -14,27 +14,48 @@ void
 Encoder::handle_irq ()
 {
     time    now     = micros();
+    int     a       = digitalRead(pinA);
+    int     b       = digitalRead(pinB);
 
-    // XXX check direction
-    tick_count++;
+    /* XXX This assumes B leads A when rotating forwards. Otherwise
+     * reverse the directions here. */
+    Direction   dir = ((a == b) ? Forward : Backward);
 
+    set_tick_dir(dir);
+
+    if (dir == Forward)
+        tick_count++;
+    else
+        tick_count--;
+    
     tick_times.push(now);
+}
+
+/* Must be called with interrupts disabled */
+void
+Encoder::set_tick_dir(Direction dir)
+{
+    /* We could check to see if we don't need to call clear(), but let's
+     * assume the STL can make that check as quickly as we can. */
+    tick_times.clear();
+    tick_dir = dir;
 }
 
 float
 Encoder::speed ()
 {
     noInterrupts();
-    time    last    = tick_times.last();
-    time    first   = tick_times.first();
-    int32_t count   = tick_times.count();
+    time        last    = tick_times.last();
+    time        first   = tick_times.first();
+    int32_t     count   = tick_times.count();
+    Direction   dir     = tick_dir;
     interrupts();
 
     if (count == 0)
         return 0.0;
 
     if (micros() - last > spdTimeout) {
-        noInterrupts(); tick_times.clear(); interrupts();
+        noInterrupts(); set_tick_dir(Stopped); interrupts();
         return 0.0;
     }
 
@@ -45,7 +66,7 @@ Encoder::speed ()
     float   edgesPerUs   = count / float(interval);
     float   revsPerSec   = (edgesPerUs * 1000000) / edgesPerRev;
 
-    return revsPerSec;
+    return (dir == Forward) ? revsPerSec : -revsPerSec;
 }
 
 float

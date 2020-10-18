@@ -25,15 +25,23 @@ class Encoder {
 #endif
     typedef unsigned long   time;
 
+    enum Direction {
+        Forward     = 1,
+        Backward    = -1,
+        Stopped     = 0,
+    };
+
     const int               pinA;
     const int               pinB;
 
     const float             edgesPerRev;
+    const time              spdTimeout;
 
     ring_buffer<time, 5>    tick_times;
     int32_t                 tick_count;
+    int8_t                  tick_dir;
 
-    const time              spdTimeout;
+    void    set_tick_dir    (Direction dir);
 };
 
 #endif
