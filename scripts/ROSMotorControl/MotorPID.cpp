@@ -40,45 +40,53 @@ MotorController::brake()
     analogWrite(motorB_, 255);
   }
 
-void 
-MotorController::set_pins(int& drivePin, int& gndPin, int demand)
+Direction 
+MotorController::find_direction(float demand)
 {
-  if (demand >= 0)
-  {
-    drivePin = motorA_;
-    gndPin = motorB_;
-    dir = 1;
-  }
+  if (demand > 0)
+    return Forward;
+
   if (demand < 0)
-  {
-    drivePin = motorB_;
-    gndPin = motorA_;
-    dir = -1;
-  }
+    return Backward;
+
+  return Stopped;
 }
 
-void 
-MotorController::set_pwm(int demand)
+int
+MotorController::find_pwm(float demand, float speed)
 {
-  float   error;
+  float   error, pwm;
 
   //Calculate error and set PWM level:
-  error       = demand - speed_;
+  error       = demand - speed;
   errorSum_   += error * dT;
   errorSum_   = constrain(errorSum_, -200, 200);
   pwm         = Kp * error + Ki * errorSum_ + Kd * (error - lastError_) / dT;
   lastError_  = error;
+
+  /* XXX This truncates towards zero. Is this the right thing to do? */
+  return pwm;
 }
 
 void
-MotorController::write_to_pins(int gndPin, int drivePin)
+MotorController::write_to_pins(Direction dir, int pwm)
 {
   //Constrain PWM:
   pwm = constrain(pwm, 0, 255);
 
-  //write to pins
-  analogWrite(gndPin, 0);
-  analogWrite(drivePin, pwm);
+  switch (dir) {
+  case Forward:
+    analogWrite(motorA_, pwm);
+    analogWrite(motorB_, 0);
+    break;
+  case Backward:
+    analogWrite(motorB_, pwm);
+    analogWrite(motorA_, 0);
+    break;
+  case Stopped:
+    coast();
+    break;
+  }
 }
 
 //PID loop:
@@ -87,8 +95,7 @@ MotorController::process_pid (const geometry_msgs::Twist &twist)
 {
   auto demandFS = twist.linear.x + (RHS ? 1 : -1) * twist.angular.z * distFromCentreline_; //Demanded floor speed for this motor
   auto demandEnc = demandFS * gearboxRatio / (PI * wheelDia); //Demanded encoder speed for this motor
-  speed_  = encoder_.speed(); // (Revs per sec for the encoder)
-  int drivePin, gndPin;
+  auto speed  = encoder_.speed(); // (Revs per sec for the encoder)
 
   //Coast if demand is zero
   if(demandEnc == 0)
@@ -98,16 +105,17 @@ MotorController::process_pid (const geometry_msgs::Twist &twist)
   }
 
   //Brake if travelling in wrong direction
-  if (speed_ != 0 && dir*demandEnc < 0)
+  if (speed*demandEnc < 0)
   {
     brake();
     return;
   }
+  if (speed < 0) speed = -speed;
 
   //Set drive and gnd pins
-  set_pins(drivePin, gndPin, demandEnc);
+  auto dir  = find_direction(demandEnc);
   if (demandEnc < 0) demandEnc = -demandEnc;
 
-  set_pwm(demandEnc);
-  write_to_pins(gndPin, drivePin);
+  auto pwm  = find_pwm(demandEnc, speed);
+  write_to_pins(dir, pwm);
 }

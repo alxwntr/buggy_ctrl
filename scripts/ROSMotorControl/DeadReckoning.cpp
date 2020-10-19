@@ -22,7 +22,6 @@ Odometer::calculate_moves()
   for (auto &m : motors)
   {
     auto wheelDist = PI * wheelDia_ * m.revolutions() / gearboxRatio_;
-    debug = m.dir;
     runningTotal += wheelDist;
     //Pos anti-clockwise, so add right, sub left
     angTotal += (m.RHS ? -1 : 1) * wheelDist;
