@@ -91,7 +91,7 @@ void loop()
     m.process_pid(confirm);
   }
 
-  if (loopCount = tfRateDivisor)
+  if (loopCount == tfRateDivisor)
   {
     odometer.calculate_moves();
     
