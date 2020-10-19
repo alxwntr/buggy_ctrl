@@ -2,14 +2,21 @@
 
 #include "MotorPID.h"
 
+/* This turns on errors for all implicit int<->float conversions and so
+ * on. I think it is worth keeping these explicit, because the results
+ * can be confusing otherwise. Note that by default the Arduino build
+ * tools turn all warnings off (with -w) which will prevent this; the
+ * option needs to be changed in the GUI. */
+#pragma GCC diagnostic error "-Wconversion"
+
 //-------------------------
 //  PID variables
 //-------------------------
 
 /* These need to be tunable from outside the MotorController in the future. */
-static const float Kp = 0.5;
-static const float Ki = 10.0;
-static const float Kd = 0.01;
+static const float Kp = 0.5f;
+static const float Ki = 10.0f;
+static const float Kd = 0.01f;
 
 //-------------------
 // MotorController Class
@@ -30,7 +37,7 @@ MotorController::coast()
 {
   analogWrite(motorA_, 0);
   analogWrite(motorB_, 0);
-  errorSum_ = 0.0;
+  errorSum_ = 0.0f;
 }
 
 void 
@@ -65,7 +72,7 @@ MotorController::find_pwm(float demand, float speed)
   lastError_  = error;
 
   /* XXX This truncates towards zero. Is this the right thing to do? */
-  return pwm;
+  return int(pwm);
 }
 
 void
@@ -93,9 +100,16 @@ MotorController::write_to_pins(Direction dir, int pwm)
 void 
 MotorController::process_pid (const geometry_msgs::Twist &twist)
 {
-  auto demandFS = twist.linear.x + (RHS ? 1 : -1) * twist.angular.z * distFromCentreline_; //Demanded floor speed for this motor
-  auto demandEnc = demandFS * gearboxRatio / (PI * wheelDia); //Demanded encoder speed for this motor
-  auto speed  = encoder_.speed(); // (Revs per sec for the encoder)
+  /* We don't want to work in doubles, it's expensive and not worth it. */
+  float twX   = float(twist.linear.x);
+  float twTh  = float(twist.angular.z);
+
+  //Demanded floor speed for this motor
+  float demandFS  = twX + (RHS ? 1 : -1) * twTh * distFromCentreline_;
+  //Demanded encoder speed for this motor
+  float demandEnc = demandFS * gearboxRatio / (float(PI) * wheelDia); 
+  // (Revs per sec for the encoder)
+  float speed     = encoder_.speed(); 
 
   //Coast if demand is zero
   if(demandEnc == 0)
