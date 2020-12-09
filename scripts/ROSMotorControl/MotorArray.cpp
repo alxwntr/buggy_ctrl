@@ -15,11 +15,17 @@
 */
 
 MotorArray motors = {{
-  { false, A0, 12, 11 },
-  { true, A1, 10, 9 },
-  { false, A2, 2, 4 },
-  { true, A3, A4, A5 },
+  { false, A2, 10, 9 },
+  { true, A3, 11, 12 },
+  { false, A1, A5, A4 },
+  { true, A0, 4, 2 },
 }}; //Pins verified as working motor by motor, need to test all four together
+
+//FL E2 = 7
+//FR E2 = 3
+//BL E2 = MOSI
+//BR E2 = SCK
+
 
 //-------------------------
 //  Interrupt functions

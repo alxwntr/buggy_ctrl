@@ -1,0 +1,196 @@
+#!/usr/bin/env python3.7
+
+import curses
+from geometry_msgs.msg import Twist
+from geometry_msgs.msg import Vector3
+import os
+import rospy
+import pygame
+
+# This implelents the curses interface. Curses doesn't provide key-up
+# events, so you have to explicitly stop by pressing space.
+class CursesInterface:
+    __slots__ = ["win", "y"]
+
+    keys    = {
+        27:                 "quit",
+        ord(" "):           "stop",
+        ord("w"):           "forward",
+        ord("s"):           "backward",
+        ord("a"):           "left",
+        ord("d"):           "right",
+        curses.KEY_UP:      "faster",
+        curses.KEY_DOWN:    "slower",
+        curses.KEY_RIGHT:   "turn-faster",
+        curses.KEY_LEFT:    "turn-slower",
+    }
+
+    def __init__ (self):
+        self.y  = 0
+
+    def setup (self):
+        self.win    = curses.initscr()
+        curses.savetty()
+        curses.noecho()
+        curses.cbreak()
+        self.win.keypad(1)
+
+    def quit (self):
+        curses.resetty()
+        curses.endwin()
+
+    def get_actions (self):
+        k   = self.win.getch();
+        if k in self.keys:
+            return [self.keys[k]]
+        else:
+            return []
+
+    def print (self, msg):
+        self.win.addstr(0, self.y, msg)
+        self.y = self.y + 1
+
+    def update (self):
+        self.win.refresh()
+        self.y  = 0
+
+# This implements the pygame interface. This can handle key-up events,
+# so the motors stop as soon as you release the key. It create a tiny
+# window just to accept events.
+class PygameInterface:
+    keydown = {
+        pygame.K_ESCAPE:        "quit",
+        pygame.K_SPACE:         "stop",
+        pygame.K_w:             "forward",
+        pygame.K_s:             "backward",
+        pygame.K_a:             "left",
+        pygame.K_d:             "right",
+        pygame.K_UP:            "faster",
+        pygame.K_DOWN:          "slower",
+        pygame.K_RIGHT:         "turn-faster",
+        pygame.K_LEFT:          "turn-slower",
+    }
+
+    keyup = {
+        pygame.K_w:     "stop",
+        pygame.K_s:     "stop",
+        pygame.K_a:     "stop",
+        pygame.K_d:     "stop",
+    }
+
+    def setup (self):
+        pygame.display.init()
+        win = pygame.display.set_mode((100, 100))
+        pygame.key.set_repeat(0)
+
+    def quit (self):
+        pygame.quit()
+
+    def get_actions (self):
+        actions = []
+
+        for event in pygame.event.get():
+            if event.type == pygame.KEYDOWN:
+                if event.key in self.keydown:
+                    actions.append(self.keydown[event.key])
+
+            if event.type == pygame.KEYUP:
+                if event.key in self.keyup:
+                    actions.append(self.keyup[event.key])
+
+        return actions
+
+    def print (self, msg):
+        print(msg)
+
+    def update (self):
+        pygame.display.update()
+
+linV = 0.4
+angV = 2.0
+
+def wait_for_subscribers():
+    i = 0
+    while not rospy.is_shutdown() and pub.get_num_connections() == 0:
+        if i == 4:
+            print("Waiting for subscriber to connect to {}".format(pub.name))
+        rospy.sleep(0.5)
+        i += 1
+        i = i % 5
+    if rospy.is_shutdown():
+        raise Exception("Got shutdown request before subscribers connected")
+
+def convert_demand(action):
+    cmd = Twist()
+    x = 0.0
+    phi = 0.0
+
+    if action == "forward":
+        x = linV
+    elif action == "backward":
+        x = -linV
+    elif action == "right":
+        phi = -angV
+        x = linV
+    elif action == "left":
+        phi = angV
+        x = linV
+
+    cmd.linear = Vector3(x, 0, 0)
+    cmd.angular = Vector3(0, 0, phi)
+
+    return cmd
+
+if __name__ == '__main__':
+    if "DISPLAY" in os.environ:
+        win   = PygameInterface()
+    else:
+        win   = CursesInterface()
+
+    win.setup()
+
+    buggy_cmd = Twist()
+
+    pub = rospy.Publisher('demand_out', Twist, queue_size=1)
+    rospy.init_node('pub')
+
+    rate = rospy.Rate(5)
+    state = 'stop'
+
+    try:
+        wait_for_subscribers()
+
+        running = True
+
+        while not rospy.is_shutdown() and running:
+
+            for action in win.get_actions():
+
+                if action == "quit":
+                    state   = "stop"
+                    print("Exiting program")
+                    running = False
+
+                elif action == "faster":
+                    linV += 0.1
+
+                elif action == "slower":
+                    linV -= 0.1
+
+                elif action == "turn-faster":
+                    angV += 0.5
+
+                elif action == "turn-slower":
+                    angV -= 0.5
+
+                else:
+                    state = action
+
+            win.update()
+            buggy_cmd = convert_demand(state)
+            pub.publish(buggy_cmd)
+            rate.sleep()
+    finally:
+        win.quit()
+        pub.publish(Twist(Vector3(0, 0, 0), Vector3(0, 0, 0)))
+
