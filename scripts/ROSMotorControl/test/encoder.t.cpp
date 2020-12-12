@@ -14,7 +14,7 @@ using namespace tap::exports;
 
 void mock_isr(void) { return; }
 
-Encoder encoder { 76 };
+Encoder encoder { 76, 42 };
 auto &tcount    = encoder.tick_count;
 auto &ttimes    = encoder.tick_times;
 
@@ -22,14 +22,15 @@ void
 check_constructor()
 {
     is(encoder.pinA,            76,         "pinA init");
-    is(encoder.speed_factor,    333333.0f,  "speed_factor init");
-    is(encoder.distance_factor, 1.0f,       "distance_factor init");
+    is(encoder.pinB,            42,         "pinB init");
+    is(encoder.edgesPerRev,     6.0f,       "edgesPerRev init");
+    is(encoder.spdTimeout,      50000ul,    "spdTimeout init");
     is(tcount,                  0,          "tick_count init");
     ok(ttimes.empty(),                      "tick_times init");
 }
 
 void
-check_speed_distance(float speed, float distance, std::string msg)
+check_speed_distance(float speed, float revs, std::string msg)
 {
     float   got;
 
@@ -43,13 +44,13 @@ check_speed_distance(float speed, float distance, std::string msg)
     }},                         "speed syscalls " + msg);
 
     clear_mock_results();
-    got = encoder.distance();
+    got = encoder.revolutions();
 
-    is(got,         distance,   "distance " + msg);
+    is(got,         revs,       "revs " + msg);
     mock_results_are({{
         {"noInterrupts"s,    {}},
         {"interrupts"s,      {}},
-    }},                         "distance syscalls " + msg);
+    }},                         "revs syscalls " + msg);
 }
 
 void
@@ -60,6 +61,7 @@ check_setup_pins()
 
     mock_results_are({{
         {"pinMode"s,            {{76, INPUT}}},
+        {"pinMode"s,            {{42, INPUT}}},
         {"attachInterrupt"s,    {{76, (intptr_t)mock_isr, CHANGE}}},
     }},                                     "setup_pins");
 }
@@ -78,7 +80,7 @@ main(int argc, char **argv)
     is(tcount,              1,      "handle_irq incs tick_count");
     is(ttimes.count(),      1,      "handle_irq adds a time");
     is(ttimes.first(),      4200,   "handle_irq adds correct time");
-    check_speed_distance(0, 1,      "after one irq");
+    check_speed_distance(0, 1.0f/6.0f,  "after one irq");
 
     done_testing();
 }

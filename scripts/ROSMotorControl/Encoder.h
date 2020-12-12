@@ -3,10 +3,18 @@
 
 #include "ring_buffer.h"
 
+enum Direction {
+    Forward     = 1,
+    Backward    = -1,
+    Stopped     = 0,
+};
+
 class Encoder {
     public:
-    Encoder (int pinA) : 
-        pinA(pinA), /* Encoder signal pin. Could be augmented with a second for quadrature at a later date. */
+    Encoder (int pinA, int pinB) : 
+         /* Encoder signal pins. Pin A has an interrupt; pin B is used
+          * only for quadrature. */
+        pinA(pinA), pinB(pinB),
         edgesPerRev(6.0f), /* number of edges in one encoder revolution. Currently six. */
         spdTimeout(50000ul) /* spdTimeout allows spd to reach zero after a set period */
         { }
@@ -24,14 +32,16 @@ class Encoder {
     typedef unsigned long   time;
 
     const int               pinA;
-    //const int             pinB;   // not yet
+    const int               pinB;
 
     const float             edgesPerRev;
+    const time              spdTimeout;
 
     ring_buffer<time, 5>    tick_times;
     int32_t                 tick_count;
+    Direction               tick_dir;
 
-    const time              spdTimeout;
+    void    set_tick_dir    (Direction dir);
 };
 
 #endif

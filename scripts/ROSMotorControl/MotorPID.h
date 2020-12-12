@@ -17,13 +17,9 @@ const float dT = 0.02; //50Hz - can't go too high because of lack of encoder pul
 class MotorController {
   public:
     const bool  RHS;
-    
-    // direction: -1 = bkwrds, 0 = static, 1 = frwrds
-    int         dir = 0;
-    float pwm = 0.0;
 
-    MotorController (bool rhs, int encPin, int motorA, int motorB)
-      : RHS(rhs), encoder_(encPin), motorA_(motorA), motorB_(motorB)
+    MotorController (bool rhs, int encA, int encB, int motorA, int motorB)
+      : RHS(rhs), encoder_(encA, encB), motorA_(motorA), motorB_(motorB)
     { }
 
     void setup_pins (void(*isr)(void));
@@ -34,7 +30,7 @@ class MotorController {
         encoder_.handle_irq();
     }
     float revolutions() {
-        return encoder_.revolutions() * dir;
+        return encoder_.revolutions();
     }
 
   private:
@@ -48,14 +44,13 @@ class MotorController {
     const float wheelDia = 0.035;
     const float gearboxRatio = 51.45;
 
-    float speed_ = 0.0;
     float lastError_ = 0.0, errorSum_ = 0.0;
 
-    void coast();
-    void brake();
-    void set_pins(int& drivePin, int& gndPin, int demand);
-    void set_pwm(int demand);
-    void write_to_pins(int gndPin, int drivePin);
+    void        coast();
+    void        brake();
+    Direction   find_direction(float demand);
+    int         find_pwm(float demand, float speed);
+    void        write_to_pins(Direction dir, int pwm);
 };
 
 #endif
