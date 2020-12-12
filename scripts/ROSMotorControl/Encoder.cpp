@@ -37,7 +37,7 @@ Encoder::set_tick_dir(Direction dir)
 {
     /* We could check to see if we don't need to call clear(), but let's
      * assume the STL can make that check as quickly as we can. */
-    tick_times.clear();
+    if (tick_dir != dir) tick_times.clear();
     tick_dir = dir;
 }
 
