@@ -10,18 +10,9 @@ class Odometer {
     float y = 0.0;
     float theta = 0.0;
     float debug;
-
-    Odometer (float wheelbase, float wheelDia, float gearboxRatio)
-      : wheelbase_(wheelbase), wheelDia_(wheelDia), gearboxRatio_(gearboxRatio)
-    { }
     
     void
     calculate_moves();
-
-   private:
-    const float wheelbase_;
-    const float wheelDia_;
-    const float gearboxRatio_;
 };
 extern Odometer odometer;
 

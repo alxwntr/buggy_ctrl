@@ -1,6 +1,8 @@
 #include <Arduino.h>
 
 #include "MotorPID.h"
+#include "Chassis.h"
+#include "Debug.h"
 
 /* This turns on errors for all implicit int<->float conversions and so
  * on. I think it is worth keeping these explicit, because the results
@@ -35,7 +37,7 @@ MotorController::setup_pins (void(*isr)(void))
 void 
 MotorController::coast()
 {
-  analogWrite(motorA_, 0);
+  digitalWrite(motorA_, 0);
   analogWrite(motorB_, 0);
   errorSum_ = 0.0f;
 }
@@ -76,12 +78,12 @@ MotorController::write_to_pins(Direction dir, int pwm)
 
   switch (dir) {
   case Forward:
-    digitalWrite(motorA_, 1);
+    digitalWrite(motorA_, 0);
     analogWrite(motorB_, pwm);
     break;
   case Backward:
-    digitalWrite(motorA_, 0);
-    analogWrite(motorA_, pwm);
+    digitalWrite(motorA_, 1);
+    analogWrite(motorB_, pwm);
     break;
   case Stopped:
     coast();
@@ -98,7 +100,7 @@ MotorController::process_pid (const geometry_msgs::Twist &twist)
   float twTh  = float(twist.angular.z);
 
   //Demanded floor speed for this motor
-  float demandFS  = twX + (RHS ? 1 : -1) * twTh * distFromCentreline_;
+  float demandFS  = twX + (RHS ? 1 : -1) * twTh * wheelbase / 2;
   //Demanded encoder speed for this motor
   float demandEnc = demandFS * gearboxRatio / (float(PI) * wheelDia); 
   // (Revs per sec for the encoder)
@@ -119,4 +121,5 @@ MotorController::process_pid (const geometry_msgs::Twist &twist)
 
   auto pwm  = find_pwm(demandEnc, speed);
   write_to_pins(dir, pwm);
+  //if(RHS) debugInt.data = pwm;
 }

@@ -2,9 +2,10 @@
 
 #include "DeadReckoning.h"
 #include "MotorArray.h"
+#include "Chassis.h"
 
-// Odometer object: wheelbase[m], wheel diameter[m], gearbox ratio[-]
-Odometer odometer { 0.15, 0.035, 51.45 };
+// Odometer object:
+Odometer odometer;
 
 //-------------------------
 //  Movement functions
@@ -21,7 +22,7 @@ Odometer::calculate_moves()
 
   for (auto &m : motors)
   {
-    auto wheelDist = PI * wheelDia_ * m.revolutions() / gearboxRatio_;
+    auto wheelDist = PI * wheelDia * m.revolutions() / gearboxRatio;
     runningTotal += wheelDist;
     //Pos anti-clockwise, so add right, sub left
     angTotal += (m.RHS ? -1 : 1) * wheelDist;
@@ -30,7 +31,7 @@ Odometer::calculate_moves()
   //Arc length traced by one side about the centre of car
   angDist = angTotal / 2;
 
-  dTheta = angDist / wheelbase_;
+  dTheta = angDist / wheelbase;
   x += fwdDist * cos(theta + dTheta / 2);
   y += fwdDist * sin(theta + dTheta / 2);
   theta += dTheta;

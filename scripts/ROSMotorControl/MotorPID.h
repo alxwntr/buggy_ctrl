@@ -38,11 +38,6 @@ class MotorController {
 
     const int motorA_;
     const int motorB_;
-    //Temporary position for these.
-    //The suggestion is to have a physical constants object globally available.
-    const float distFromCentreline_ = 0.075;
-    const float wheelDia = 0.035;
-    const float gearboxRatio = 51.45;
 
     float lastError_ = 0.0, errorSum_ = 0.0;
 

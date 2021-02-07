@@ -1,13 +1,12 @@
 #include <ros.h>
 #include <tf/tf.h>
 #include <tf/transform_broadcaster.h>
-#include <std_msgs/Float32.h>
+#include <std_msgs/Int32.h>
 #include <geometry_msgs/Twist.h>
 
 #include "DeadReckoning.h"
 #include "MotorArray.h"
-
-std_msgs::Float32 debug;
+#include "Debug.h"
 
 //To start communication, use:
 //rosrun rosserial_python serial_node.py /dev/ttyACM0 _baud:=1000000 (remember #define USE_USBCON 1)
@@ -23,7 +22,7 @@ geometry_msgs::Twist confirm;
 
 //Publishers and subscriber:
 ros::Publisher p1("demand_confirm", &confirm);
-ros::Publisher p2("debug", &debug);
+ros::Publisher p2("debug", &debugInt);
 
 void callback(const geometry_msgs::Twist& msg)
 {
@@ -98,7 +97,7 @@ void loop()
     loopCount = 0;
     publish_tf();
     
-    p2.publish( &debug );
+    p2.publish( &debugInt );
   }
 
   nh.spinOnce();
