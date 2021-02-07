@@ -11,7 +11,7 @@ std_msgs::Float32 debug;
 
 //To start communication, use:
 //rosrun rosserial_python serial_node.py /dev/ttyACM0 _baud:=1000000 (remember #define USE_USBCON 1)
-//rosrun rosserial_python serial_node.py /dev/ttyAMA1  _baud:=1000000 on pi serial pins)
+//rosrun rosserial_python serial_node.py /dev/ttyAMA0  _baud:=1000000 on pi3 serial pins)
 
 //-------------------------
 //  ROS stuff

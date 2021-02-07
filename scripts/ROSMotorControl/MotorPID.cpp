@@ -14,9 +14,9 @@
 //-------------------------
 
 /* These need to be tunable from outside the MotorController in the future. */
-static const float Kp = 0.5f;
-static const float Ki = 10.0f;
-static const float Kd = 0.01f;
+static const float Kp = 0.0f;
+static const float Ki = 5.0f;
+static const float Kd = 0.0f;
 
 //-------------------
 // MotorController Class
@@ -39,13 +39,6 @@ MotorController::coast()
   analogWrite(motorB_, 0);
   errorSum_ = 0.0f;
 }
-
-void 
-MotorController::brake()
-  {
-    analogWrite(motorA_, 255);
-    analogWrite(motorB_, 255);
-  }
 
 Direction 
 MotorController::find_direction(float demand)
@@ -83,12 +76,12 @@ MotorController::write_to_pins(Direction dir, int pwm)
 
   switch (dir) {
   case Forward:
-    analogWrite(motorA_, pwm);
-    analogWrite(motorB_, 0);
+    digitalWrite(motorA_, 1);
+    analogWrite(motorB_, pwm);
     break;
   case Backward:
-    analogWrite(motorB_, pwm);
-    analogWrite(motorA_, 0);
+    digitalWrite(motorA_, 0);
+    analogWrite(motorA_, pwm);
     break;
   case Stopped:
     coast();
@@ -118,12 +111,6 @@ MotorController::process_pid (const geometry_msgs::Twist &twist)
     return;
   }
 
-  //Brake if travelling in wrong direction
-  if (speed*demandEnc < 0)
-  {
-    brake();
-    return;
-  }
   if (speed < 0) speed = -speed;
 
   //Set drive and gnd pins

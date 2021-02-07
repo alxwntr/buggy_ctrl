@@ -47,7 +47,6 @@ class MotorController {
     float lastError_ = 0.0, errorSum_ = 0.0;
 
     void        coast();
-    void        brake();
     Direction   find_direction(float demand);
     int         find_pwm(float demand, float speed);
     void        write_to_pins(Direction dir, int pwm);

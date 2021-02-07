@@ -5,7 +5,7 @@
 
 #include "MotorPID.h"
 
-typedef std::array<MotorController, 4> MotorArray;
+typedef std::array<MotorController, 2> MotorArray;
 extern MotorArray motors;
 
 void setup_motors();
