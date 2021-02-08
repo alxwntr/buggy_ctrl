@@ -121,5 +121,5 @@ MotorController::process_pid (const geometry_msgs::Twist &twist)
 
   auto pwm  = find_pwm(demandEnc, speed);
   write_to_pins(dir, pwm);
-  //if(RHS) debugInt.data = pwm;
+  if(RHS) debugInt.data = pwm;
 }
