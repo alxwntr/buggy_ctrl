@@ -75,6 +75,7 @@ MotorController::write_to_pins(Direction dir, int pwm)
 {
   //Constrain PWM:
   pwm = constrain(pwm, 0, 255);
+  if(RHS) debugInfo.pwm = (buggy_ctrl::ctrl_info::_pwm_type)pwm;
 
   switch (dir) {
   case Forward:
@@ -121,5 +122,4 @@ MotorController::process_pid (const geometry_msgs::Twist &twist)
 
   auto pwm  = find_pwm(demandEnc, speed);
   write_to_pins(dir, pwm);
-  if(RHS) debugInt.data = pwm;
 }

@@ -2,9 +2,8 @@
 #define DEBUG_H
 
 #include <Arduino.h>
+#include <buggy_ctrl/ctrl_info.h>
 
-#include <std_msgs/Int32.h>
-
-extern std_msgs::Int32 debugInt;
+extern buggy_ctrl::ctrl_info debugInfo;
 
 #endif

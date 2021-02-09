@@ -1,6 +1,5 @@
 #include <Arduino.h>
-
-#include <std_msgs/Int32.h>
+#include <buggy_ctrl/ctrl_info.h>
 
 //Debug variable
-std_msgs::Int32 debugInt;
+buggy_ctrl::ctrl_info debugInfo;

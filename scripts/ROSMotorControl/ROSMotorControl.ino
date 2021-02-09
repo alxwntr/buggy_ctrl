@@ -1,8 +1,8 @@
 #include <ros.h>
 #include <tf/tf.h>
 #include <tf/transform_broadcaster.h>
-#include <std_msgs/Int32.h>
 #include <geometry_msgs/Twist.h>
+#include <buggy_ctrl/ctrl_info.h>
 
 #include "DeadReckoning.h"
 #include "MotorArray.h"
@@ -22,7 +22,7 @@ geometry_msgs::Twist confirm;
 
 //Publishers and subscriber:
 ros::Publisher p1("demand_confirm", &confirm);
-ros::Publisher p2("debug", &debugInt);
+ros::Publisher p2("debug", &debugInfo);
 
 void callback(const geometry_msgs::Twist& msg)
 {
@@ -97,7 +97,7 @@ void loop()
     loopCount = 0;
     publish_tf();
     
-    p2.publish( &debugInt );
+    p2.publish( &debugInfo );
   }
 
   nh.spinOnce();
