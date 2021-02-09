@@ -2,7 +2,8 @@
 #include <tf/tf.h>
 #include <tf/transform_broadcaster.h>
 #include <geometry_msgs/Twist.h>
-#include <buggy_ctrl/ctrl_info.h>
+#include <buggy_ctrl/pidInfo.h>
+#include <buggy_ctrl/ctrlDebug.h>
 
 #include "DeadReckoning.h"
 #include "MotorArray.h"
@@ -96,8 +97,9 @@ void loop()
     
     loopCount = 0;
     publish_tf();
-    
-    p2.publish( &debugInfo );
+
+    publish_debug( p2 );
+    //p2.publish( &ctrlDebug );
   }
 
   nh.spinOnce();

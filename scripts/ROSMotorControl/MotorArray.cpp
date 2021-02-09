@@ -8,14 +8,14 @@
      Back left,
      Back right}
 
-     Entries in the form [RHS?, EncA, EncB, DirSel, Drive]
+     Entries in the form [motor_index, RHS?, EncA, EncB, DirSel, Drive]
 
      Need to put correct pins in.
 */
 
 MotorArray motors = {{
-  { false, A1, A2, 9, 10 },
-  { true, A3, A4, 11, 12 },
+  { 0, false, A1, A2, 9, 10 },
+  { 1, true, A3, A4, 11, 12 },
 }};
 
 //-------------------------

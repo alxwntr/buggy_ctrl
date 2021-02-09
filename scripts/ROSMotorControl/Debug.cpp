@@ -1,5 +1,13 @@
-#include <Arduino.h>
-#include <buggy_ctrl/ctrl_info.h>
+#include "Debug.h"
 
-//Debug variable
-buggy_ctrl::ctrl_info debugInfo;
+//Two info structs to hold data
+buggy_ctrl::pidInfo pidInfo[2];
+
+//Array to hold the structs
+buggy_ctrl::ctrlDebug debugInfo;
+
+void publish_debug( ros::Publisher& pub ) {
+  debugInfo.data=pidInfo;
+  debugInfo.data_length=2;
+  pub.publish( &debugInfo );
+}

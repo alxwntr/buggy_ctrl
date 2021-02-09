@@ -16,10 +16,11 @@ const float dT = 0.02; //50Hz - can't go too high because of lack of encoder pul
 
 class MotorController {
   public:
+    const int motorNum;
     const bool  RHS;
 
-    MotorController (bool rhs, int encA, int encB, int motorA, int motorB)
-      : RHS(rhs), encoder_(encA, encB), motorA_(motorA), motorB_(motorB)
+    MotorController (const int motorNum, bool rhs, int encA, int encB, int motorA, int motorB)
+      : motorNum(motorNum), RHS(rhs), encoder_(encA, encB), motorA_(motorA), motorB_(motorB)
     { }
 
     void setup_pins (void(*isr)(void));

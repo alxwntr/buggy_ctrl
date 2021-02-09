@@ -58,6 +58,9 @@ int
 MotorController::find_pwm(float demand, float speed)
 {
   float   error, pwm;
+  
+  pidInfo[motorNum].direction = (speed==0?0:speed>0?1:-1); //backwards = -1, stationary = 0, forwards = 1.
+  if (speed < 0) speed = -speed;
 
   //Calculate error and set PWM level:
   error       = demand - speed;
@@ -65,6 +68,11 @@ MotorController::find_pwm(float demand, float speed)
   errorSum_   = constrain(errorSum_, -200, 200);
   pwm         = Kp * error + Ki * errorSum_ + Kd * (error - lastError_) / dT;
   lastError_  = error;
+  
+  //Store values in debug struct
+  pidInfo[motorNum].error = error;
+  pidInfo[motorNum].speed = speed;
+  pidInfo[motorNum].pwm = (int16_t)pwm;
 
   /* XXX This truncates towards zero. Is this the right thing to do? */
   return int(pwm);
@@ -75,7 +83,6 @@ MotorController::write_to_pins(Direction dir, int pwm)
 {
   //Constrain PWM:
   pwm = constrain(pwm, 0, 255);
-  if(RHS) debugInfo.pwm = (buggy_ctrl::ctrl_info::_pwm_type)pwm;
 
   switch (dir) {
   case Forward:
@@ -113,8 +120,6 @@ MotorController::process_pid (const geometry_msgs::Twist &twist)
     coast();
     return;
   }
-
-  if (speed < 0) speed = -speed;
 
   //Set drive and gnd pins
   auto dir  = find_direction(demandEnc);
