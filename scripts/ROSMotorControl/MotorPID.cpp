@@ -108,18 +108,11 @@ MotorController::process_pid (const geometry_msgs::Twist &twist)
   float twTh  = float(twist.angular.z);
 
   //Demanded floor speed for this motor
-  float demandFS  = twX + (RHS ? 1 : -1) * twTh * wheelbase / 2;
+  float demandFS  = twX + (RHS ? -1 : 1) * twTh * wheelbase / 2;
   //Demanded encoder speed for this motor
   float demandEnc = demandFS * gearboxRatio / (float(PI) * wheelDia); 
   // (Revs per sec for the encoder)
   float speed     = encoder_.speed(); 
-
-  //Coast if demand is zero
-  if(demandEnc == 0)
-  {
-    coast();
-    return;
-  }
 
   //Set drive and gnd pins
   auto dir  = find_direction(demandEnc);

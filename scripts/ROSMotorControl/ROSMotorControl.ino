@@ -99,12 +99,11 @@ void loop()
     publish_tf();
 
     publish_debug( p2 );
-    //p2.publish( &ctrlDebug );
   }
 
   nh.spinOnce();
 
   wait = micros() - mainLoopTime;
-  wait = 1000000 / (1/dT) - wait;
+  wait = (1000000 * dT) - wait;
   delayMicroseconds(wait);
 }
