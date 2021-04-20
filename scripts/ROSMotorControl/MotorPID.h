@@ -5,8 +5,6 @@
 
 #include "Encoder.h"
 // Demand limits - SI units now in use
-const int linDmdMax = 2;
-const int angDmdMax = 2;
 
 const float dT = 0.02; //50Hz - can't go too high because of lack of encoder pulses
 
@@ -23,13 +21,12 @@ class MotorController {
       : motorNum(motorNum), RHS(rhs), encoder_(encA, encB), motorA_(motorA), motorB_(motorB)
     { }
 
+    Encoder& get_encoder() {return encoder_; }
+
     void setup_pins (void(*isr)(void));
     void process_pid (const geometry_msgs::Twist &twist);
 
     // XXX These should not forward through the MotorController
-    void handle_irq() {
-        encoder_.handle_irq();
-    }
     float revolutions() {
         return encoder_.revolutions();
     }

@@ -9,6 +9,11 @@ enum Direction {
     Stopped     = 0,
 };
 
+enum InterruptPin {
+    PinAInterrupt     = 1,
+    PinBInterrupt    = -1,
+};
+
 class Encoder {
     public:
     Encoder (int pinA, int pinB) : 
@@ -20,7 +25,7 @@ class Encoder {
         { }
 
     void    setup_pins  (void(*isr)(void));
-    void    handle_irq  ();
+    void    handle_irq  (InterruptPin pin);
 
     float   speed       ();
     // This returns the number of revolutions since last time it was called

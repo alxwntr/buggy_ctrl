@@ -21,6 +21,9 @@ ros::NodeHandle nh;
 
 geometry_msgs::Twist confirm;
 
+const int linDmdMax = 2;
+const int angDmdMax = 6;
+
 //Publishers and subscriber:
 ros::Publisher p1("demand_confirm", &confirm);
 ros::Publisher p2("debug", &debugInfo);

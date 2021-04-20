@@ -3,22 +3,19 @@
 #include "Encoder.h"
 
 void
-Encoder::setup_pins(void(*isr)(void))
+Encoder::setup_pins()
 {
     pinMode(pinA, INPUT); 
     pinMode(pinB, INPUT);
-    attachInterrupt(digitalPinToInterrupt(pinA), isr, CHANGE);
 }
 
 void 
-Encoder::handle_irq ()
+Encoder::handle_irq (InterruptPin pin)
 {
     time    now     = micros();
     int     a       = digitalRead(pinA);
     int     b       = digitalRead(pinB);
 
-    /* XXX This assumes B leads A when rotating forwards. Otherwise
-     * reverse the directions here. */
     Direction   dir = ((a != b) ? Forward : Backward);
 
     set_tick_dir(dir);

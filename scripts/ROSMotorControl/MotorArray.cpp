@@ -22,12 +22,14 @@ MotorArray motors = {{
 //  Interrupt functions
 //-------------------------
 
-static void ISR1() { motors[0].handle_irq(); }
-static void ISR2() { motors[1].handle_irq(); }
+static void ISR1() { motors[0].get_encoder().handle_irq(PinAInterrupt); }
+static void ISR2() { motors[0].get_encoder().handle_irq(PinBInterrupt); }
+static void ISR3() { motors[1].get_encoder().handle_irq(PinAInterrupt); }
+static void ISR4() { motors[1].get_encoder().handle_irq(PinBInterrupt); }
 
 void
 setup_motors()
 {
     motors[0].setup_pins(ISR1);
-    motors[1].setup_pins(ISR2);
+    motors[1].setup_pins(ISR3);
 }
