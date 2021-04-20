@@ -79,12 +79,12 @@ MotorController::find_pwm(float demand, float speed)
 }
 
 void
-MotorController::write_to_pins(Direction dir, int pwm)
+MotorController::write_to_pins(Direction demandDir, int pwm)
 {
   //Constrain PWM:
   pwm = constrain(pwm, 0, 255);
 
-  switch (dir) {
+  switch (demandDir) {
   case Forward:
     digitalWrite(motorA_, 0);
     analogWrite(motorB_, pwm);
@@ -115,9 +115,9 @@ MotorController::process_pid (const geometry_msgs::Twist &twist)
   float speed     = encoder_.speed(); 
 
   //Set drive and gnd pins
-  auto dir  = find_direction(demandEnc);
+  auto demandDir  = find_direction(demandEnc);
   if (demandEnc < 0) demandEnc = -demandEnc;
 
   auto pwm  = find_pwm(demandEnc, speed);
-  write_to_pins(dir, pwm);
+  write_to_pins(demandDir, pwm);
 }

@@ -19,7 +19,7 @@ Encoder::handle_irq ()
 
     /* XXX This assumes B leads A when rotating forwards. Otherwise
      * reverse the directions here. */
-    Direction   dir = ((a == b) ? Forward : Backward);
+    Direction   dir = ((a != b) ? Forward : Backward);
 
     set_tick_dir(dir);
 
