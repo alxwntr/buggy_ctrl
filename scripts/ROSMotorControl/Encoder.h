@@ -24,7 +24,7 @@ class Encoder {
         spdTimeout(50000ul) /* spdTimeout allows spd to reach zero after a set period */
         { }
 
-    void    setup_pins  (void(*isr)(void));
+    void    setup_pins  ();
     void    handle_irq  (InterruptPin pin);
 
     float   speed       ();

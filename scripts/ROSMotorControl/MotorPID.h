@@ -23,7 +23,7 @@ class MotorController {
 
     Encoder& get_encoder() {return encoder_; }
 
-    void setup_pins (void(*isr)(void));
+    void setup_pins ();
     void process_pid (const geometry_msgs::Twist &twist);
 
     // XXX These should not forward through the MotorController

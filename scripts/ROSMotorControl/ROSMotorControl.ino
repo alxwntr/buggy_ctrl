@@ -60,7 +60,7 @@ unsigned long wait = 0;
 
 void setup()
 {
-  setup_motors();
+  setup_pins();
 
   nh.getHardware()->setBaud(1000000);
   nh.initNode();

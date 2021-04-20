@@ -25,13 +25,13 @@ static const float Kd = 0.0f;
 //-------------------
 
 void 
-MotorController::setup_pins (void(*isr)(void))
+MotorController::setup_pins ()
 {
   //Motor pins
   pinMode(motorA_, OUTPUT);
   pinMode(motorB_, OUTPUT);
 
-  encoder_.setup_pins(isr);
+  encoder_.setup_pins();
 }
 
 void 

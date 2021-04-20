@@ -16,7 +16,14 @@ Encoder::handle_irq (InterruptPin pin)
     int     a       = digitalRead(pinA);
     int     b       = digitalRead(pinB);
 
-    Direction   dir = ((a != b) ? Forward : Backward);
+    Direction   dir;
+    
+    if (InterruptPin == PinAInterrupt) {
+        dir = ((a != b) ? Forward : Backward);
+    }
+    else {
+        dir = ((a == b) ? Forward : Backward);
+    }
 
     set_tick_dir(dir);
 
