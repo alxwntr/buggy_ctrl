@@ -17,7 +17,6 @@ Odometer::calculate_moves()
   float runningTotal = 0.0;
   float angTotal = 0.0;
   float fwdDist = 0.0;
-  float angDist = 0.0;
   float dTheta = 0.0;
 
   for (auto &m : motors)
@@ -28,10 +27,8 @@ Odometer::calculate_moves()
     angTotal += (m.RHS ? -1 : 1) * wheelDist;
   }
   fwdDist = runningTotal / motors.size();
-  //Arc length traced by one side about the centre of car
-  angDist = angTotal / 2;
 
-  dTheta = angDist / wheelbase;
+  dTheta = angTotal / wheelbase;
   x += fwdDist * cos(theta + dTheta / 2);
   y += fwdDist * sin(theta + dTheta / 2);
   theta += dTheta;

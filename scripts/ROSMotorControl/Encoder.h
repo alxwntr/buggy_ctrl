@@ -20,7 +20,7 @@ class Encoder {
          /* Encoder signal pins. Pin A has an interrupt; pin B is used
           * only for quadrature. */
         pinA(pinA), pinB(pinB),
-        edgesPerRev(12.0f), /* number of edges in one encoder revolution. Currently twelve. */
+        edgesPerRev(32.0f), /* number of edges in one encoder revolution. Currently 32 per channel. */
         spdTimeout(50000ul) /* spdTimeout allows spd to reach zero after a set period */
         { }
 

@@ -18,7 +18,7 @@ Encoder::handle_irq (InterruptPin pin)
 
     Direction   dir;
     
-    if (InterruptPin == PinAInterrupt) {
+    if (pin == PinAInterrupt) {
         dir = ((a != b) ? Forward : Backward);
     }
     else {

@@ -24,10 +24,11 @@ MotorArray motors = {{
 //  Interrupt functions
 //-------------------------
 
+//16cpr
 static void ISR_motor0_pinA() { motors[0].get_encoder().handle_irq(PinAInterrupt); }
-static void ISR_motor0_pinB() { motors[0].get_encoder().handle_irq(PinBInterrupt); }
+//static void ISR_motor0_pinB() { motors[0].get_encoder().handle_irq(PinBInterrupt); }
 static void ISR_motor1_pinA() { motors[1].get_encoder().handle_irq(PinAInterrupt); }
-static void ISR_motor1_pinB() { motors[1].get_encoder().handle_irq(PinBInterrupt); }
+//static void ISR_motor1_pinB() { motors[1].get_encoder().handle_irq(PinBInterrupt); }
 
 static void
 do_attach_isr (int pin, void (*isr)(void))
@@ -43,7 +44,7 @@ setup_pins()
 
     /* This need to match the encoder pins above */
     do_attach_isr(A1, ISR_motor0_pinA);
-    do_attach_isr(A2, ISR_motor0_pinB);
+    //do_attach_isr(A2, ISR_motor0_pinB);
     do_attach_isr(A3, ISR_motor1_pinA);
-    do_attach_isr(A4, ISR_motor1_pinB);
+    //do_attach_isr(A4, ISR_motor1_pinB);
 }
